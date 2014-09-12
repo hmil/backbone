@@ -1,4 +1,5 @@
-//     Backbone.js 1.1.2
+//     Custom Backbone build by Hadrien Milano (github.com/Agent-H/)
+//     based on Backbone.js 1.1.2
 
 //     (c) 2010-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 //     Backbone may be freely distributed under the MIT license.
@@ -311,6 +312,7 @@
     var attrs = attributes || {};
     options || (options = {});
     this.cid = _.uniqueId('c');
+    this._processSchema();
     this.schema[this.idAttribute] = this.idType;
     this.attributes = {};
     if (options.collection) this.collection = options.collection;
@@ -426,10 +428,11 @@
       // For each `set` attribute, update or delete the current value.
       for (attr in attrs) {
 
-        // If we currently have a model instance and the data is not a model instance,
+        // If we currently have a model or collection instance and the data is no such instance,
         // keep the current reference. Otherwise, replace reference with the new one
-        if (current[attr] instanceof Model && !_.isBlank(attrs[attr]) && !(attrs[attr] instanceof Model)) {
-          unset ? delete current[attr] : current[attr].set(attrs[attr].valueOf());
+        if (!_.isBlank(attrs[attr]) && (current[attr] instanceof Model && !(attrs[attr] instanceof Model)
+         || current[attr] instanceof Collection && !(attrs[attr] instanceof Collection))) {
+          unset ? delete current[attr] : current[attr].set(attrs[attr].valueOf(), options);
         }
 
         else {
@@ -666,22 +669,22 @@
       return false;
     },
 
-    // Processes syntaxic sugar for collections and models
+    // Processes syntaxic sugar for inline collections and models
     _processSchema: function() {
       var schema = this.schema;
       _.each(schema, function(SchemaType, key) {
         if (_.isArray(SchemaType)) {
           SchemaType = SchemaType[0];
           if (!_.isFunction(SchemaType)) { // schema is raw attributes hash
-            SchemaType = makeAnonymousModel(SchemaType);
-          }
-          schema[key] = Collection.extend({
-            model: Model.extend({
+            SchemaType = Backbone.Model.extend({
               schema: SchemaType
-            })
+            });
+          }
+          schema[key] = Backbone.Collection.extend({
+            model: SchemaType
           });
         } else if (_.isObject(SchemaType) && !_.isFunction(SchemaType)) {
-          schema[key] = Model.extend({
+          schema[key] = Backbone.Model.extend({
             schema: SchemaType
           });
         }
@@ -819,11 +822,10 @@
       var toAdd = [], toRemove = [], modelMap = {};
       var add = options.add, merge = options.merge, remove = options.remove;
       var order = !sortable && add && remove ? [] : false;
-      var i;
 
       // Turn bare objects into model references, and prevent invalid models
       // from being added.
-      for (i = 0, length = models.length; i < length; i++) {
+      for (var i = 0, length = models.length; i < length; i++) {
         attrs = models[i];
 
         // If a duplicate is found, prevent it from being added and
@@ -856,7 +858,7 @@
 
       // Remove nonexistent models if appropriate.
       if (remove) {
-        for (i = 0, length = this.length; i < length; i++) {
+        for (var i = 0, length = this.length; i < length; i++) {
           if (!modelMap[(model = this.models[i]).cid]) toRemove.push(model);
         }
         if (toRemove.length) this.remove(toRemove, options);
@@ -867,13 +869,13 @@
         if (sortable) sort = true;
         this.length += toAdd.length;
         if (at != null) {
-          for (i = 0, length = toAdd.length; i < length; i++) {
+          for (var i = 0, length = toAdd.length; i < length; i++) {
             this.models.splice(at + i, 0, toAdd[i]);
           }
         } else {
           if (order) this.models.length = 0;
           var orderedModels = order || toAdd;
-          for (i = 0, length = orderedModels.length; i < length; i++) {
+          for (var i = 0, length = orderedModels.length; i < length; i++) {
             this.models.push(orderedModels[i]);
           }
         }
@@ -885,7 +887,7 @@
       // Unless silenced, it's time to fire all appropriate add/sort events.
       if (!options.silent) {
         var addOpts = at != null ? _.clone(options) : options;
-        for (i = 0, length = toAdd.length; i < length; i++) {
+        for (var i = 0, length = toAdd.length; i < length; i++) {
           if (at != null) addOpts.index = at + i;
           (model = toAdd[i]).trigger('add', model, this, addOpts);
         }

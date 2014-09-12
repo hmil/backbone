@@ -1247,4 +1247,75 @@
     ok(model.get('child') === other, 'New model reference takes over when setting Model.');
   });
 
+  test("inline schema properties", 6, function() {
+    var Model = Backbone.Model.extend({
+      schema: {
+        posts: [{
+          author: {
+            name: Backbone.String
+          },
+          comments: [{
+            text: Backbone.String,
+          }]
+        }]
+      }
+    });
+
+    var model = new Model({
+      posts: [{
+        author: {
+          name: 'jack'
+        },
+        comments: [{
+          text: 'cool'
+        }, {
+          text: 'nice'
+        }]
+      }]
+    });
+
+    ok(model.get('posts') instanceof Backbone.Collection);
+    ok(model.get('posts').first() instanceof Backbone.Model);
+    ok(model.get('posts').first().get('author') instanceof Backbone.Model);
+    ok(model.get('posts').first().get('comments') instanceof Backbone.Collection);
+    ok(model.get('posts').first().get('comments').first() instanceof Backbone.Model);
+    equal(model.get('posts').first().get('comments').first().get('text'), 'cool');
+  });
+
+  test("setting nested data", 3, function() {
+    var Model = Backbone.Model.extend({
+      schema: {
+        mod: {
+          title: String
+        },
+        coll: [{
+          title: String
+        }]
+      }
+    });
+    var model = new Model({
+      mod: {
+        title: 'foo',
+        name: ''
+      },
+      coll: [{
+        title: 'bar'
+      }, {
+        title: 'bar'
+      }]
+    });
+    model.set('mod', {
+      name: 'foo2'
+    });
+    equal(model.get('mod').get('title'), 'foo', 'setting a model updates it');
+    equal(model.get('mod').get('name'), 'foo2', 'setting a model updates it');
+
+    model.set('coll', [{
+      title: 'bar'
+    }]);
+    model.get('coll').each(function(m) {
+      equal(m.get('title'), 'bar', 'setting a collection resets it');
+    });
+  });
+
 })();
