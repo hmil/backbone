@@ -1140,4 +1140,111 @@
     model.set({a: true});
   });
 
+  test("extends also extends hash properties", 1, function() {
+    var Parent = Backbone.Model.extend({
+      myProp: {
+        a: 1,
+        b: 2
+      }
+    });
+    var Child = Parent.extend({
+      myProp: {
+        b: 3,
+        c: 'foo'
+      }
+    });
+    var model = new Child;
+    deepEqual(model.myProp, {a: 1, b: 3, c: 'foo'});
+  });
+
+  test("schema types are applied", 3, function() {
+    var Model = Backbone.Model.extend({
+      schema: {
+        str: Backbone.String,
+        num: Backbone.Number,
+        bool: Backbone.Boolean
+      }
+    });
+    var model = new Model({
+      str: 123,
+      num: '123',
+      bool: 123
+    });
+    ok(model.get('str') instanceof String);
+    ok(model.get('num') instanceof Number);
+    ok(model.get('bool') instanceof Boolean);
+  });
+
+  test("boolean type accepts numeric input", 4, function() {
+    var Model = Backbone.Model.extend({
+      schema: {
+        st: Backbone.Boolean,
+        sf: Backbone.Boolean,
+        nt: Backbone.Boolean,
+        nf: Backbone.Boolean
+      }
+    });
+    var model = new Model({
+      st: '1',
+      sf: '0',
+      nt: 1,
+      nf: 0
+    });
+    strictEqual(model.get('st').valueOf(), true);
+    strictEqual(model.get('sf').valueOf(), false);
+    strictEqual(model.get('nt').valueOf(), true);
+    strictEqual(model.get('nf').valueOf(), false);
+  });
+
+  test("nested models", 2, function() {
+    var Model = Backbone.Model.extend({
+      schema: {
+        bar: String
+      },
+      foo: function() {
+        return 'foo';
+      }
+    });
+    var Wrapper = Backbone.Model.extend({
+      schema: {
+        child: Model
+      }
+    });
+    var model = new Wrapper({
+      child: {
+        bar: 'hqhq'
+      }
+    });
+    equal(model.get('child').foo(), 'foo');
+    equal(model.get('child').get('bar'), 'hqhq');
+  });
+
+  test("nested models with external reference", 5, function() {
+    var Model = Backbone.Model.extend({
+      schema: {
+        name: String
+      },
+      foo: function() {
+        return 'foo';
+      }
+    });
+    var Wrapper = Backbone.Model.extend({
+      schema: {
+        child: Model
+      }
+    });
+    var child = new Model({name: 'child'});
+    var other = new Model({name: 'other'});
+    var model = new Wrapper({
+      child: child
+    });
+    ok(model.get('child') === child, 'Reference is kept on initial set.');
+    model.set('child', {name: 'edited'});
+    ok(model.get('child') === child, 'Reference is kept when setting JSON.');
+    equal(child.get('name'), 'edited', 'Model is modified when setting JSON.');
+    model.set('child', other);
+    ok(model.get('child') !== child, 'Reference is lost when setting Model.');
+    ok(model.get('child') === other, 'New model reference takes over when setting Model.');
+  });
+
 })();

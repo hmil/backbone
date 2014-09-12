@@ -42,7 +42,7 @@
       {id: 1},
       {id: 2}
     ], {comparator: 'id'});
-    deepEqual(collection.pluck('id'), [1, 2, 3]);
+    deepEqual(collection.pluck('id'), ['1', '2', '3']);
   });
 
   test("new and parse", 3, function() {
@@ -284,7 +284,13 @@
   });
 
   test("comparator that depends on `this`", 2, function() {
-    var col = new Backbone.Collection;
+    var Model = Backbone.Model.extend({
+      idType: Backbone.Number
+    });
+    var Collection = Backbone.Collection.extend({
+      model: Model
+    });
+    var col = new Collection;
     col.negative = function(num) {
       return -num;
     };
@@ -543,7 +549,7 @@
   });
 
   test("toJSON", 1, function() {
-    equal(JSON.stringify(col), '[{"id":3,"label":"a"},{"id":2,"label":"b"},{"id":1,"label":"c"},{"id":0,"label":"d"}]');
+    equal(JSON.stringify(col), '[{"id":"3","label":"a"},{"id":"2","label":"b"},{"id":"1","label":"c"},{"id":"0","label":"d"}]');
   });
 
   test("where and findWhere", 8, function() {
@@ -687,6 +693,7 @@
 
   test("#861, adding models to a collection which do not pass validation, with validate:true", function() {
       var Model = Backbone.Model.extend({
+        idType: Backbone.Number,
         validate: function(attrs) {
           if (attrs.id == 3) return "id can't be 3";
         }
@@ -814,12 +821,12 @@
 
   test("#1448 - add sorts collection after merge.", 1, function() {
     var collection = new Backbone.Collection([
-      {id: 1, x: 1},
-      {id: 2, x: 2}
+      {id: '1', x: 1},
+      {id: '2', x: 2}
     ]);
     collection.comparator = function(model){ return model.get('x'); };
     collection.add({id: 1, x: 3}, {merge: true});
-    deepEqual(collection.pluck('id'), [2, 1]);
+    deepEqual(collection.pluck('id'), ['2', '1']);
   });
 
   test("#1655 - groupBy can be used with a string argument.", 3, function() {
@@ -1040,13 +1047,13 @@
       }
     });
     var Collection = Backbone.Collection.extend({model: Model});
-    var data = [{id: 1, child: {id: 2}}];
+    var data = [{id: '1', child: {id: '2'}}];
     var collection = new Collection(data);
-    equal(collection.first().id, 1);
+    equal(collection.first().id, '1');
     collection.set(data);
-    equal(collection.first().id, 1);
-    collection.set([{id: 2, child: {id: 2}}].concat(data));
-    deepEqual(collection.pluck('id'), [2, 1]);
+    equal(collection.first().id, '1');
+    collection.set([{id: '2', child: {id: '2'}}].concat(data));
+    deepEqual(collection.pluck('id'), ['2', '1']);
   });
 
   test("`set` and model level `parse`", function() {

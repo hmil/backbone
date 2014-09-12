@@ -63,6 +63,43 @@
   // form param named `model`.
   Backbone.emulateJSON = false;
 
+  // Utility functions:
+  // ------------------
+  // Some things that underscore did not provide and some other found in underscore-contrib
+  _.mixin({
+    // Provides a way of checking attributes that were not specified by user
+    isBlank: function(attr) {
+      return _.isUndefined(attr) || _.isNull(attr) || _.isNaN(attr) || attr.valueOf() === '';
+    },
+
+    // Copy of the original defaults method but this one uses isBlank instead of '=== void 0'
+    defaultsBlank: function(obj) {
+      if (!_.isObject(obj)) return obj;
+      for (var i = 1, length = arguments.length; i < length; i++) {
+        var source = arguments[i];
+        for (var prop in source) {
+          if (_.isBlank(obj[prop])) obj[prop] = source[prop];
+        }
+      }
+      return obj;
+    },
+
+    // A numeric is a variable that contains a numeric value, regardless its type
+    // It can be a String containing a numeric value, exponential notation, or a Number object
+    // See here for more discussion: http://stackoverflow.com/questions/18082/validate-numbers-in-javascript-isnumeric/1830844#1830844
+    isNumeric: function(n) {
+      return !_.isNaN(parseFloat(n)) && _.isFinite(n);
+    },
+
+    // An integer contains an optional minus sign to begin and only the digits 0-9
+    // Objects that can be parsed that way are also considered ints, e.g. "123"
+    // Floats that are mathematically equal to integers are considered integers, e.g. 1.0
+    // See here for more discussion: http://stackoverflow.com/questions/1019515/javascript-test-for-an-integer
+    isInteger: function(i) {
+      return _.isNumeric(i) && i % 1 === 0;
+    }
+  });
+
   // Backbone.Events
   // ---------------
 
@@ -260,12 +297,21 @@
   // A discrete chunk of data and a bunch of useful, related methods for
   // performing computations and transformations on that data.
 
+
+  // Schema types
+  Backbone.String = String;
+  Backbone.Number = Number;
+  Backbone.Boolean = function(val) {
+    return new Boolean(val !== '0' && val);
+  };
+
   // Create a new model with the specified attributes. A client id (`cid`)
   // is automatically generated and assigned for you.
   var Model = Backbone.Model = function(attributes, options) {
     var attrs = attributes || {};
     options || (options = {});
     this.cid = _.uniqueId('c');
+    this.schema[this.idAttribute] = this.idType;
     this.attributes = {};
     if (options.collection) this.collection = options.collection;
     if (options.parse) attrs = this.parse(attrs, options) || {};
@@ -287,6 +333,19 @@
     // The default name for the JSON `id` attribute is `"id"`. MongoDB and
     // CouchDB users may want to set this to `"_id"`.
     idAttribute: 'id',
+
+    // The id attribute schema type: a string fits most cases and complies with
+    // the test suite. However a side effect is that integer values passed as ids
+    // are cast to strings (breaking some original tests).
+    idType: String,
+
+    // Models are given a name for debugging purpose
+    name: 'std model',
+
+    defaults: {},
+
+    // The schema allows a programmer to explicitely specify a model's structure
+    schema: {},
 
     // Initialize is an empty function by default. Override it with your own
     // initialization logic.
@@ -336,6 +395,15 @@
 
       options || (options = {});
 
+      //Applies defaults on blank values
+      if (!options || !options.forceBlank) {
+        var defaults = _.result(this, 'defaults');
+        attrs = _.reduce(attrs, function(mem, val, key) {
+          mem[key] = (_.isBlank(val)) ? defaults[key] || val : val;
+          return mem;
+        }, attrs);
+      }
+
       // Run validation.
       if (!this._validate(attrs, options)) return false;
 
@@ -357,14 +425,23 @@
 
       // For each `set` attribute, update or delete the current value.
       for (attr in attrs) {
-        val = attrs[attr];
-        if (!_.isEqual(current[attr], val)) changes.push(attr);
-        if (!_.isEqual(prev[attr], val)) {
-          this.changed[attr] = val;
-        } else {
-          delete this.changed[attr];
+
+        // If we currently have a model instance and the data is not a model instance,
+        // keep the current reference. Otherwise, replace reference with the new one
+        if (current[attr] instanceof Model && !_.isBlank(attrs[attr]) && !(attrs[attr] instanceof Model)) {
+          unset ? delete current[attr] : current[attr].set(attrs[attr].valueOf());
         }
-        unset ? delete current[attr] : current[attr] = val;
+
+        else {
+          val = this._prepareAttribute(attrs[attr], attr, options);
+          if (!_.isEqual(current[attr], val)) changes.push(attr);
+          if (!_.isEqual(prev[attr], val)) {
+            this.changed[attr] = val;
+          } else {
+            delete this.changed[attr];
+          }
+          unset ? delete current[attr] : current[attr] = val;
+        }
       }
 
       // Trigger all relevant attribute changes.
@@ -587,8 +664,54 @@
       if (!error) return true;
       this.trigger('invalid', this, error, _.extend(options, {validationError: error}));
       return false;
-    }
+    },
 
+    // Processes syntaxic sugar for collections and models
+    _processSchema: function() {
+      var schema = this.schema;
+      _.each(schema, function(SchemaType, key) {
+        if (_.isArray(SchemaType)) {
+          SchemaType = SchemaType[0];
+          if (!_.isFunction(SchemaType)) { // schema is raw attributes hash
+            SchemaType = makeAnonymousModel(SchemaType);
+          }
+          schema[key] = Collection.extend({
+            model: Model.extend({
+              schema: SchemaType
+            })
+          });
+        } else if (_.isObject(SchemaType) && !_.isFunction(SchemaType)) {
+          schema[key] = Model.extend({
+            schema: SchemaType
+          });
+        }
+      });
+    },
+
+    // Applies constructors to an attribute if needed and specified in the schema
+    _prepareAttribute: function(attr, name, options) {
+      var SchemaType = this.schema[name];
+
+      if (_.isUndefined(SchemaType)) {
+        // If schema property is not defined, warns in the console but returns
+        // the attribute for backward compatibility with backbone
+        console.warn('Model "'+this.name+'" does not have schema property "'+name+'"');
+        return attr;
+      }
+      // preserve blank-type values and attributes that are already instances of the right type
+      else if (_.isBlank(attr) || (attr instanceof SchemaType)) {
+        return attr;
+      } else {
+        attr = attr.valueOf();
+
+        // new instance
+        if (SchemaType.prototype instanceof Model || SchemaType.prototype instanceof Collection) {
+          return new SchemaType(attr, options);
+        } else {
+          return new SchemaType(attr);
+        }
+      }
+    }
   });
 
   // Underscore methods that we want to implement on the Model.
@@ -696,10 +819,11 @@
       var toAdd = [], toRemove = [], modelMap = {};
       var add = options.add, merge = options.merge, remove = options.remove;
       var order = !sortable && add && remove ? [] : false;
+      var i;
 
       // Turn bare objects into model references, and prevent invalid models
       // from being added.
-      for (var i = 0, length = models.length; i < length; i++) {
+      for (i = 0, length = models.length; i < length; i++) {
         attrs = models[i];
 
         // If a duplicate is found, prevent it from being added and
@@ -732,7 +856,7 @@
 
       // Remove nonexistent models if appropriate.
       if (remove) {
-        for (var i = 0, length = this.length; i < length; i++) {
+        for (i = 0, length = this.length; i < length; i++) {
           if (!modelMap[(model = this.models[i]).cid]) toRemove.push(model);
         }
         if (toRemove.length) this.remove(toRemove, options);
@@ -743,13 +867,13 @@
         if (sortable) sort = true;
         this.length += toAdd.length;
         if (at != null) {
-          for (var i = 0, length = toAdd.length; i < length; i++) {
+          for (i = 0, length = toAdd.length; i < length; i++) {
             this.models.splice(at + i, 0, toAdd[i]);
           }
         } else {
           if (order) this.models.length = 0;
           var orderedModels = order || toAdd;
-          for (var i = 0, length = orderedModels.length; i < length; i++) {
+          for (i = 0, length = orderedModels.length; i < length; i++) {
             this.models.push(orderedModels[i]);
           }
         }
@@ -761,7 +885,7 @@
       // Unless silenced, it's time to fire all appropriate add/sort events.
       if (!options.silent) {
         var addOpts = at != null ? _.clone(options) : options;
-        for (var i = 0, length = toAdd.length; i < length; i++) {
+        for (i = 0, length = toAdd.length; i < length; i++) {
           if (at != null) addOpts.index = at + i;
           (model = toAdd[i]).trigger('add', model, this, addOpts);
         }
@@ -1650,6 +1774,7 @@
   // Helper function to correctly set up the prototype chain, for subclasses.
   // Similar to `goog.inherits`, but uses a hash of prototype properties and
   // class properties to be extended.
+  // plus: all hash properties are also extended, not replaced
   var extend = function(protoProps, staticProps) {
     var parent = this;
     var child;
@@ -1663,6 +1788,13 @@
       child = function(){ return parent.apply(this, arguments); };
     }
 
+    var proto = this.prototype;
+    _.each(protoProps, function(prop, key) {
+        if (_.isObject(prop) && !_.isFunction(prop) && !_.isArray(prop)) {
+            _.defaults(prop, proto[key]);
+        }
+    });
+
     // Add static properties to the constructor function, if supplied.
     _.extend(child, parent, staticProps);
 
@@ -1674,7 +1806,15 @@
 
     // Add prototype properties (instance properties) to the subclass,
     // if supplied.
-    if (protoProps) _.extend(child.prototype, protoProps);
+    if (protoProps) {
+      // extends prototype hash properties
+      _.each(protoProps, function(prop, key) {
+          if (_.isObject(prop) && !_.isFunction(prop) && !_.isArray(prop)) {
+              _.defaults(prop, parent.prototype[key]);
+          }
+      });
+      _.extend(child.prototype, protoProps);
+    }
 
     // Set a convenience property in case the parent's prototype is needed
     // later.
