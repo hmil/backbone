@@ -747,6 +747,7 @@
     options || (options = {});
     if (options.model) this.model = options.model;
     if (options.comparator !== void 0) this.comparator = options.comparator;
+    this.Reference = Reference.create(this);
     this._reset();
     this.initialize.apply(this, arguments);
     if (models) this.reset(models, _.extend({silent: true}, options));
@@ -1841,6 +1842,54 @@
       model.trigger('error', model, resp, options);
     };
   };
+
+  // Reference
+  // A reference acts as a proxy to a model belonging to a specific collection.
+  var Reference = Model.extend({}, {
+    create: function(collection) {
+      if (!_.isFunction(collection.model)) return;
+      // We need to construct a dummy model in order to clone it's properties
+      // (included the inherited ones)
+      var model = new collection.model({}, {});
+      var proto = {};
+      // This loops takes each model method and exposes a proxy which
+      // applies this method on the referenced model.
+      // eg. when you call ref.myMethod(), you actually call ref.$().myMethod()
+      for(var name in model) {
+        (function(fn, name) {
+          if (_.isFunction(model[name])) {
+            proto[name] = function() {
+              return fn.apply(this.$(), arguments);
+            }
+          } else {
+            proto[name] = model[name];
+          }
+        })(model[name], name);
+      };
+      return Reference.extend(_.extend({}, proto, {
+        constructor: function(id) {
+          this.id = id;
+        },
+
+        toJSON: function() {
+          return this.id;
+        },
+
+        set: function(id) {
+          if (arguments.length === 1 && (_.isString(id) || _.isNumber(id))) {
+            this.id = id;
+          } else {
+            proto.set.apply(this, arguments);
+          }
+        },
+
+        // Dereferences this reference : returns the pointed model or a dummy model
+        $: function() {
+          return (collection.get(this.id) || new collection.model({}, {}));
+        }
+      }));
+    }
+  });
 
   return Backbone;
 
