@@ -87,14 +87,6 @@
     equal(m.get('foo'), 'fifoo');
   });
 
-  test('Setting pointed model', 1, function() {
-    col.add(m);
-    col.add(p);
-    var ref = new col.Reference(1);
-    ref.set(2);
-    equal(ref.get('foo'), 'loup');
-  });
-
   test('Collections of references', 6, function() {
     col.add(m);
     col.add(p);
@@ -122,39 +114,15 @@
     });
   });
 
-  test('references are merged in the collection when id is set', 4, function() {
-    col.add([m, p, {
-      id: 3,
-      foo: 'bar'
-    }]);
-
-    colRef.add([1, 2, 3]);
-
-    equal(colRef.size(), 3);
-    colRef.chain()
-      .filter(function(ref) { return ref.id != 1;})
-      .each(function(ref) {
-        ref.set(1);
-      });
-    equal(colRef.size(), 1);
-    equal(colRef.get(2), undefined);
-    equal(colRef.get(3), undefined);
-  });
-
-
-  test('setting a reference with a model or a reference', 6, function() {
+  test('setting a reference with a model or a reference', 4, function() {
     col.add([m, p]);
     var ref = colRef.add(col.get(1));
     ok(ref instanceof col.Reference);
     equal(ref.get('foo'), 'bar');
-    ref.set(2);
-    equal(ref.get('foo'), 'loup');
 
     ref = colRef.add(new col.Reference(1));
     ok(ref instanceof col.Reference);
     equal(ref.get('foo'), 'bar');
-    ref.set(2);
-    equal(ref.get('foo'), 'loup');
   });
 
   // TODO: polymorph collections should accept reference as one of their ctr

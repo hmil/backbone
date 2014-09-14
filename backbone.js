@@ -445,8 +445,9 @@
       for (attr in attrs) {
         // If we currently have a model or collection instance and the data is no such instance,
         // keep the current reference. Otherwise, replace reference with the new one
-        if (!_.isBlank(attrs[attr]) && (current[attr] instanceof Model && !(attrs[attr] instanceof Model)
-         || current[attr] instanceof Collection && !(attrs[attr] instanceof Collection))) {
+        if (!_.isBlank(attrs[attr]) 
+          && (current[attr] instanceof Model && !(current[attr] instanceof Reference) && !(attrs[attr] instanceof Model)
+            || current[attr] instanceof Collection && !(attrs[attr] instanceof Collection))) {
           unset ? delete current[attr] : current[attr].set(attrs[attr], options);
         }
 
@@ -1868,13 +1869,6 @@
   // Reference
   // A reference acts as a proxy to a model belonging to a specific collection.
   var Reference = Backbone.Reference = Model.extend({}, {
-    // We limit the risk of namespace conflicts by using constructor properties
-    // instead of prototype properties
-    setReferenceId: function(ref, id) {
-      ref.id = id;
-      ref.attributes[ref.idAttribute] = id;
-    },
-
     create: function(collection) {
       if (!_.isFunction(collection.model)) return;
       // We need to construct a dummy model in order to clone it's properties
@@ -1909,29 +1903,12 @@
 
           this.attributes = {};
           this.cid = _.uniqueId('c');
-          Reference.setReferenceId(this, id);
+          this.id = id;
+          this.attributes[this.idAttribute] = id;
         },
         // By default a reference returns only it's id for json-ing
         toJSON: function() {
           return this.id;
-        },
-
-        // Set applied with one string or number argument means you want to set the reference
-        // otherwise it means you want to set properties of the model
-        set: function(id) {
-          if (arguments.length === 1 && (_.isString(id) || _.isNumber(id))) {
-            var collection;
-            // If the reference belongs to a collection, readds it so that it 
-            // keeps correctly indexed
-            if ((collection = this.collection)) {
-              collection.remove(this, {silent: true});
-              Reference.setReferenceId(this, id);
-              collection.add(this, {silent: true});
-            } else
-              Reference.setReferenceId(this, id);
-          } else {
-            proto.set.apply(this, arguments);
-          }
         },
 
         // Dereferences this reference : returns the pointed model or a dummy model
