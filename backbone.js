@@ -1869,17 +1869,18 @@
       // This loops takes each model method and exposes a proxy which
       // applies this method on the referenced model.
       // eg. when you call ref.myMethod(), you actually call ref.$().myMethod()
+      function proxyProtoProp(fn, name) {
+        if (_.isFunction(model[name])) {
+          proto[name] = function() {
+            return fn.apply(this.$(), arguments);
+          };
+        } else {
+          proto[name] = model[name];
+        }
+      }
       for(var name in model) {
-        (function(fn, name) {
-          if (_.isFunction(model[name])) {
-            proto[name] = function() {
-              return fn.apply(this.$(), arguments);
-            }
-          } else {
-            proto[name] = model[name];
-          }
-        })(model[name], name);
-      };
+        proxyProtoProp(model[name], name);
+      }
 
       // Reference prototype properties are defined here so they override all
       // pointed model properties
@@ -1922,7 +1923,9 @@
         $: function() {
           return (collection.get(this.id) || new collection.model({}, {}));
         }
-      }));
+      }), {
+        collection: collection,
+      });
     }
   });
 
