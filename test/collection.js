@@ -668,13 +668,14 @@
     ok(attrs === models[0]);
   });
 
-  test("#714: access `model.collection` in a brand new model.", 2, function() {
+  test("#714: access `model.collection` in a brand new model.", 1, function() {
     var collection = new Backbone.Collection;
     collection.url = '/test';
     var Model = Backbone.Model.extend({
       set: function(attrs) {
-        equal(attrs.prop, 'value');
-        equal(this.collection, collection);
+        if(attrs.prop === 'value') {
+          equal(this.collection, collection);
+        }
         return this;
       }
     });

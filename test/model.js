@@ -1170,9 +1170,9 @@
       num: '123',
       bool: 123
     });
-    ok(model.get('str') instanceof String);
-    ok(model.get('num') instanceof Number);
-    ok(model.get('bool') instanceof Boolean);
+    equal(typeof model.get('str'), 'string');
+    equal(typeof model.get('num'), 'number');
+    equal(typeof model.get('bool'), 'boolean');
   });
 
   test("boolean type accepts numeric input", 4, function() {

@@ -366,7 +366,8 @@
 
     // Get the value of an attribute.
     get: function(attr) {
-      return this.attributes[attr];
+      var val = this.attributes[attr];
+      return val && val.valueOf();
     },
 
     // Get the HTML-escaped value of an attribute.
@@ -427,12 +428,11 @@
 
       // For each `set` attribute, update or delete the current value.
       for (attr in attrs) {
-
         // If we currently have a model or collection instance and the data is no such instance,
         // keep the current reference. Otherwise, replace reference with the new one
         if (!_.isBlank(attrs[attr]) && (current[attr] instanceof Model && !(attrs[attr] instanceof Model)
          || current[attr] instanceof Collection && !(attrs[attr] instanceof Collection))) {
-          unset ? delete current[attr] : current[attr].set(attrs[attr].valueOf(), options);
+          unset ? delete current[attr] : current[attr].set(attrs[attr], options);
         }
 
         else {
@@ -1062,7 +1062,10 @@
     // Prepare a hash of attributes (or other model) to be added to this
     // collection.
     _prepareModel: function(attrs, options) {
-      if (this._isModel(attrs)) {
+      // Return the given model only if it is a Model instance and we do not expect
+      // to wrap it in a reference
+      if (this._isReference(attrs) || (this._isModel(attrs)
+          && !this._isReference(new this.model(attrs.attributes, options)))) {
         if (!attrs.collection) attrs.collection = this;
         return attrs;
       }
@@ -1078,6 +1081,10 @@
     // the purposes of adding to the collection.
     _isModel: function (model) {
       return model instanceof Model;
+    },
+
+    _isReference: function(ref) {
+      return ref instanceof Reference;
     },
 
     // Internal method to create a model's ties to a collection.
@@ -1845,7 +1852,14 @@
 
   // Reference
   // A reference acts as a proxy to a model belonging to a specific collection.
-  var Reference = Model.extend({}, {
+  var Reference = Backbone.Reference = Model.extend({}, {
+    // We limit the risk of namespace conflicts by using constructor properties
+    // instead of prototype properties
+    setReferenceId: function(ref, id) {
+      ref.id = id;
+      ref.attributes[ref.idAttribute] = id;
+    },
+
     create: function(collection) {
       if (!_.isFunction(collection.model)) return;
       // We need to construct a dummy model in order to clone it's properties
@@ -1866,18 +1880,39 @@
           }
         })(model[name], name);
       };
-      return Reference.extend(_.extend({}, proto, {
-        constructor: function(id) {
-          this.id = id;
-        },
 
+      // Reference prototype properties are defined here so they override all
+      // pointed model properties
+      return Reference.extend(_.extend({}, proto, {
+        constructor: function(id, options) {
+          options || (options = {});
+          if (options.collection) this.collection = options.collection;
+          
+          if (_.isObject(id))
+            id = id[this.idAttribute];
+
+          this.attributes = {};
+          this.cid = _.uniqueId('c');
+          Reference.setReferenceId(this, id);
+        },
+        // By default a reference returns only it's id for json-ing
         toJSON: function() {
           return this.id;
         },
 
+        // Set applied with one string or number argument means you want to set the reference
+        // otherwise it means you want to set properties of the model
         set: function(id) {
           if (arguments.length === 1 && (_.isString(id) || _.isNumber(id))) {
-            this.id = id;
+            var collection;
+            // If the reference belongs to a collection, readds it so that it 
+            // keeps correctly indexed
+            if ((collection = this.collection)) {
+              collection.remove(this, {silent: true});
+              Reference.setReferenceId(this, id);
+              collection.add(this, {silent: true});
+            } else
+              Reference.setReferenceId(this, id);
           } else {
             proto.set.apply(this, arguments);
           }
