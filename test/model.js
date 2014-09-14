@@ -1318,4 +1318,35 @@
     });
   });
 
+  test("virtual attributes", 2, function() {
+
+    var Model = Backbone.Model.extend({
+      schema: {
+        value: String
+      },
+      virtual: {
+        subs: function(size) {
+          if (!size) size = 2;
+          return this.get('value').substr(0, size);
+        }
+      }
+    });
+
+    var model = new Model({
+      value: 'test'
+    });
+
+    equal(model.get('subs'), 'te');
+    equal(model.get('subs', 3), 'tes');
+  });
+
+  test("labels", 1, function() {
+    var model = new (Backbone.Model.extend({
+      labels: {
+        foo: 'foo label',
+      }
+    }))();
+
+    equal(model.getLabel('foo'), 'foo label');
+  });
 })();

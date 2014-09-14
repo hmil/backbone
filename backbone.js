@@ -349,6 +349,12 @@
     // The schema allows a programmer to explicitely specify a model's structure
     schema: {},
 
+    // Virtual attributes are computed from actual attributes value
+    virtual: {},
+
+    // Labels helps building consistent forms
+    labels: {},
+
     // Initialize is an empty function by default. Override it with your own
     // initialization logic.
     initialize: function(){},
@@ -366,8 +372,17 @@
 
     // Get the value of an attribute.
     get: function(attr) {
-      var val = this.attributes[attr];
-      return val && val.valueOf();
+      if (_.has(this.virtual, attr)){
+        return this.virtual[attr].apply(this, Array.prototype.slice.call(arguments, 1));
+      } else {
+        var val = this.attributes[attr];
+        return val && val.valueOf();
+      }
+    },
+
+    // Get the label of an attribute
+    getLabel: function(key) {
+      return this.labels[key] || key;
     },
 
     // Get the HTML-escaped value of an attribute.
