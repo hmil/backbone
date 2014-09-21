@@ -362,7 +362,17 @@
 
     // Return a copy of the model's `attributes` object.
     toJSON: function(options) {
-      return _.clone(this.attributes);
+      var c = _.clone(this.attributes);
+      _.each(this.schema, function(a, key) {
+        var val = c[key];
+        if (val == null) return;
+        if (val.toJSON !== undefined) {
+          c[key] = val.toJSON();
+        } else {
+          c[key] = val.valueOf();
+        }
+      });
+      return c;
     },
 
     // Proxy `Backbone.sync` by default -- but override this if you need
@@ -446,7 +456,7 @@
       for (attr in attrs) {
         // If we currently have a model or collection instance and the data is no such instance,
         // keep the current reference. Otherwise, replace reference with the new one
-        if (!_.isBlank(attrs[attr]) 
+        if (!_.isBlank(attrs[attr])
           && (current[attr] instanceof Model && !(current[attr] instanceof Reference) && !(attrs[attr] instanceof Model)
             || current[attr] instanceof Collection && !(attrs[attr] instanceof Collection))) {
           unset ? delete current[attr] : current[attr].set(attrs[attr], options);
@@ -1899,7 +1909,7 @@
         constructor: function(id, options) {
           options || (options = {});
           if (options.collection) this.collection = options.collection;
-          
+
           if (_.isObject(id))
             id = id[this.idAttribute];
 

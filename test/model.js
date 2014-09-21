@@ -1318,6 +1318,34 @@
     });
   });
 
+  test("toJSON with nested data", 1, function() {
+    var Model = Backbone.Model.extend({
+      schema: {
+        mod: {
+          title: String
+        },
+        coll: [{
+          title: String
+        }]
+      }
+    });
+    var model = new Model({
+      mod: {
+        title: 'foo',
+        name: ''
+      },
+      coll: [{
+        title: 'bar'
+      }, {
+        title: 'foo'
+      }]
+    });
+    deepEqual(model.toJSON(), {
+      mod: {title: 'foo', name: ''},
+      coll:[{title: 'bar'}, {title:'foo'}]
+    });
+  });
+
   test("virtual attributes", 2, function() {
 
     var Model = Backbone.Model.extend({
