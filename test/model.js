@@ -1349,4 +1349,12 @@
 
     equal(model.getLabel('foo'), 'foo label');
   });
+
+
+  test("Construct a model with a model", 2, function() {
+    var model = new proxy(doc);
+
+    equal(model.id, '1-the-tempest');
+    equal(model.get('title'), 'The Tempest');
+  });
 })();

@@ -1450,4 +1450,12 @@
     col.add([{at: 1}, {at: 2}]);
   });
 
+  test("Construct a collection with another collection", 3, function() {
+    var col2 = new Backbone.Collection(col);
+
+    equal(col2.size(), 4);
+    equal(col2.get(0).get('label'), 'd');
+    equal(col2.get(3).get('label'), 'a');
+  });
+
 })();

@@ -310,6 +310,7 @@
   // is automatically generated and assigned for you.
   var Model = Backbone.Model = function(attributes, options) {
     var attrs = attributes || {};
+    if (attrs instanceof Model) attrs = attrs.attributes;
     options || (options = {});
     this.cid = _.uniqueId('c');
     this._processSchema();
@@ -762,6 +763,7 @@
   var Collection = Backbone.Collection = function(models, options) {
     options || (options = {});
     if (options.model) this.model = options.model;
+    if (models instanceof Collection) models = models.models;
     if (options.comparator !== void 0) this.comparator = options.comparator;
     this.Reference = Reference.create(this);
     this._reset();
