@@ -356,6 +356,9 @@
     // Labels helps building consistent forms
     labels: {},
 
+    // Define validation rules for each attribute
+    validators: {},
+
     // Initialize is an empty function by default. Override it with your own
     // initialization logic.
     initialize: function(){},
@@ -685,6 +688,36 @@
       return this._validate({}, _.extend(options || {}, { validate: true }));
     },
 
+    validate: function(attrs) {
+      var that = this;
+      function validate(acc, validator, attr, attrName) {
+        validator = that._getValidator(validator);
+        var err = validator.call(that, attr, attrName, attrs);
+        if (!_.isUndefined(err)) {
+          // add error
+          if (_.isUndefined(acc[attrName]))
+            acc[attrName] = [];
+          acc[attrName].push(err);
+        }
+      }
+      var errors = _.reduce(this.validators, function(acc, validator, attrName) {
+        var attr = attrs[attrName];
+        if (_.isArray(validator)) {
+          _.each(validator, function(v){
+            validate(acc, v, attr, attrName)
+          });
+        } else {
+          validate(acc, validator, attr, attrName);
+        }
+        return acc;
+      }, {});
+      return _.isEmpty(errors) ? undefined : errors;
+    },
+
+    getErrors: function(key) {
+      return (this.validationError && this.validationError[key]) || [];
+    },
+
     // Run validation against the next complete set of model attributes,
     // returning `true` if all is well. Otherwise, fire an `"invalid"` event.
     _validate: function(attrs, options) {
@@ -694,6 +727,12 @@
       if (!error) return true;
       this.trigger('invalid', this, error, _.extend(options, {validationError: error}));
       return false;
+    },
+
+    _getValidator: function(validator) {
+      if (_.isFunction(validator)) return validator;
+      else if (_.has(this, validator)) return this[validator];
+      else throw new Error('Invalid validator : '+validator);
     },
 
     // Processes syntaxic sugar for inline collections and models
@@ -756,6 +795,35 @@
       return _[method].apply(_, args);
     };
   });
+
+  /*
+   *  Built in validators provide most commonly used validation rules
+   */
+  Backbone.validators = {
+    required: function(attr, attrName) {
+      if (_.isBlank(attr)) {
+        return this.getLabel(attrName) + ' cannot be blank.';
+      }
+    },
+
+    length: function(opts) {
+      return function(attr, attrName) {
+        if (!_.isUndefined(attr)) {
+          if (_.has(opts, 'min') && attr.length < opts.min) {
+            return this.getLabel(attrName) + ' must be more than ' + opts.min + ' character long.';
+          }
+          if (_.has(opts, 'max') && attr.length > opts.max) {
+            return this.getLabel(attrName) + ' must be less than ' + opts.max + ' character long.';
+          }
+          if (_.has(opts, 'eq') && attr.length !== opts.eq) {
+            return this.getLabel(attrName) + ' must be exactly ' + opts.eq + ' character long.';
+          }
+        }
+      };
+    },
+
+    // TODO: number and integer validators (and many more !)
+  };
 
   // Backbone.Collection
   // -------------------

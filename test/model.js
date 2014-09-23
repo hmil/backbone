@@ -1199,7 +1199,7 @@
   test("nested models", 2, function() {
     var Model = Backbone.Model.extend({
       schema: {
-        bar: String
+        bar: Backbone.String
       },
       foo: function() {
         return 'foo';
@@ -1222,7 +1222,7 @@
   test("nested models with external reference", 5, function() {
     var Model = Backbone.Model.extend({
       schema: {
-        name: String
+        name: Backbone.String
       },
       foo: function() {
         return 'foo';
@@ -1286,10 +1286,10 @@
     var Model = Backbone.Model.extend({
       schema: {
         mod: {
-          title: String
+          title: Backbone.String
         },
         coll: [{
-          title: String
+          title: Backbone.String
         }]
       }
     });
@@ -1322,10 +1322,10 @@
     var Model = Backbone.Model.extend({
       schema: {
         mod: {
-          title: String
+          title: Backbone.String
         },
         coll: [{
-          title: String
+          title: Backbone.String
         }]
       }
     });
@@ -1350,7 +1350,7 @@
 
     var Model = Backbone.Model.extend({
       schema: {
-        value: String
+        value: Backbone.String
       },
       virtual: {
         subs: function(size) {
@@ -1384,5 +1384,52 @@
 
     equal(model.id, '1-the-tempest');
     equal(model.get('title'), 'The Tempest');
+  });
+
+  test("Basic validation", 4, function() {
+    var Model = Backbone.Model.extend({
+      schema: {
+        title: Backbone.String
+      },
+      validators: {
+        title: Backbone.validators.required
+      }
+    });
+    var model = new Model();
+    var model2 = new Model({title: 'foo'});
+
+    equal(model.isValid(), false);
+    equal(model.getErrors('title').length, 1);
+    equal(model2.isValid(), true);
+    equal(model2.getErrors('title').length, 0);
+  });
+
+  test("validate length", 4, function() {
+    var validators = [
+      Backbone.validators.length({max: 5, min: 3}),
+      Backbone.validators.length({eq: 4})
+    ];
+    var Model = Backbone.Model.extend({
+      schema: {
+        tooShort: Backbone.String,
+        tooLong: Backbone.String,
+        right: Backbone.String
+      },
+      validators: {
+        tooShort: validators,
+        tooLong: validators,
+        right: validators
+      }
+    });
+    var model = new Model({
+      tooShort: 'a',
+      tooLong: 'abcdef',
+      right: 'abcd'
+    });
+
+    equal(model.isValid(), false);
+    equal(model.getErrors('tooShort').length, 2);
+    equal(model.getErrors('tooLong').length, 2);
+    equal(model.getErrors('right').length, 0);
   });
 })();
