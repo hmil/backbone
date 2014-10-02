@@ -1346,6 +1346,118 @@
     });
   });
 
+
+  test("models propagate nested model change events", 6, function(){
+    var e_special = 0, e_general = 0;
+    var Model = Backbone.Model.extend({
+      schema: {
+        child: { title: String }
+      }
+    });
+    var Child = Backbone.Model.extend({
+      schema: {title: 'foo'}
+    });
+    var mod = new Model({child: Child});
+    mod.on('change:child', function(){
+      ++e_special;
+    });
+    mod.on('change', function(){
+      ++e_general;
+    });
+    mod.get('child').set('title', 'bar');
+    equal(e_special, 1, 'special event was fired once and oly once (indirect change)');
+    equal(e_general, 1, 'general event was fired once and oly once (indirect change)');
+    e_special = e_general = 0;
+    mod.set({child: {title: 'foo'}});
+    equal(e_special, 1, 'special event was fired (direct change)');
+    equal(e_general, 1, 'general event was fired (direct change)');
+    e_special = e_general = 0;
+    mod.set({child: new Child()});
+    equal(e_special, 1, 'special event was fired (instance change)');
+    equal(e_general, 1, 'general event was fired (instance change)');
+  });
+
+  test("models propagate nested model change events", 2, function(){
+    var e_special = 0, e_general = 0;
+    var Model = Backbone.Model.extend({
+      schema: {
+        child: { title: String }
+      }
+    });
+    var mod = new Model({child: {title: 'foo'}});
+    mod.on('change:child', function(){
+      ++e_special;
+    });
+    mod.on('change', function(){
+      ++e_general;
+    });
+    mod.get('child').set('title', 'bar');
+    equal(e_special, 1, 'special event was fired');
+    equal(e_general, 1, 'general event was fired');
+  });
+
+  test("destroying nested model triggers change event and unsets it", 4, function() {
+    var e_special = false, e_general = false, e_destroyed = false;
+    var Model = Backbone.Model.extend({
+      schema: {
+        child: { title: String }
+      }
+    });
+    var mod = new Model({child: {title: 'foo'}});
+    mod.on('change:child', function(){
+      e_special = true;
+    });
+    mod.on('change', function(){
+      e_general = true;
+    });
+    mod.on('destroyed', function() {
+      e_destroyed = true;
+    });
+    mod.get('child').destroy();
+    equal(e_special, true, 'special event was fired');
+    equal(e_general, true, 'general event was fired');
+    equal(e_destroyed, false, 'destroy event was not fired');
+    ok(mod.get('child') == null, 'model is unset');
+  });
+
+  test("collection events propagate properly", 10, function() {
+    var e_special = 0, e_general = 0;
+    var Mod = Backbone.Model.extend({
+      schema: {
+        posts: [{title: String}]
+      }
+    });
+    var mod = new Mod({posts: [{title: 'foo', id: 2}]});
+    mod.on('change:posts', function() {
+      ++e_special;
+    });
+    mod.on('change', function() {
+      ++e_general;
+    });
+    var posts = mod.get('posts');
+    posts.comparator = 'id';
+    posts.add({title: 'foo', id: 1}, {sort: false});
+    equal(e_special, 1, 'special event fired (add)');
+    equal(e_special, 1, 'general event fired (add)');
+    e_special = e_general = 0;
+    posts.sort();
+    equal(e_special, 1, 'special event fired (sort)');
+    equal(e_special, 1, 'general event fired (sort)');
+    e_special = e_general = 0;
+    posts.first().set('title', 'loup');
+    equal(e_special, 1, 'special event fired (change)');
+    equal(e_special, 1, 'general event fired (change)');
+    e_special = e_general = 0;
+    posts.remove(1);
+    equal(e_special, 1, 'special event fired (remove)');
+    equal(e_special, 1, 'general event fired (remove)');
+    e_special = e_general = 0;
+    posts.reset([{title: 'foobar'}]);
+    equal(e_special, 1, 'special event fired (reset)');
+    equal(e_special, 1, 'general event fired (reset)');
+    e_special = e_general = 0;
+  });
+
   test("virtual attributes", 2, function() {
 
     var Model = Backbone.Model.extend({

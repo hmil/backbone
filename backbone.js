@@ -318,6 +318,7 @@
     this.cid = _.uniqueId('c');
     this._processSchema();
     this.schema[this.idAttribute] = this.idType;
+    this._handlers = {};
     this.attributes = {};
     if (options.collection) this.collection = options.collection;
     if (options.parse) attrs = this.parse(attrs, options) || {};
@@ -460,6 +461,8 @@
 
       // For each `set` attribute, update or delete the current value.
       for (attr in attrs) {
+        // removes event bindings with child model or collection
+        if (unset) this._unbindAttr(attr, current[attr]);
         // If we currently have a model or collection instance and the data is no such instance,
         // keep the current reference. Otherwise, replace reference with the new one
         if (!_.isBlank(attrs[attr])
@@ -476,7 +479,7 @@
           } else {
             delete this.changed[attr];
           }
-          unset ? delete current[attr] : current[attr] = val;
+          unset ? delete current[attr] : this._bindAttr(attr, current[attr] = val);
         }
       }
 
@@ -721,6 +724,45 @@
 
     getErrors: function(key) {
       return (this.validationError && this.validationError[key]) || [];
+    },
+
+    _unbindAttr: function(name, attr) {
+      if (attr instanceof Model || attr instanceof Collection) {
+        attr.off('all', this._handlers[name], this);
+        delete this._handlers[name];
+      }
+    },
+
+    _bindAttr: function(name, attr) {
+      var handler;
+      if (attr instanceof Model) {
+        handler = function(event, model, options) {
+          if (event === 'change') {
+            this.trigger('change:'+name, this, attr, options);
+            this.trigger('change', this, options);
+          } else if (event === 'destroy') {
+            this.unset(name);
+          }
+        };
+      } else if (attr instanceof Collection) {
+        handler = function(event, obj, options){
+          switch (event) {
+            case 'reset':
+            case 'sort':
+            case 'change':
+              options = obj;
+            case 'add':
+            case 'remove':
+            case 'destroy':
+              this.trigger('change:'+name, this, attr, options);
+              this.trigger('change', this, options);
+          }
+        }
+      } else {
+        return;
+      }
+
+      attr.on('all', handler, this);
     },
 
     // Run validation against the next complete set of model attributes,
