@@ -783,7 +783,7 @@
       }
     };
     col.sync = m.sync = function( method, collection, options ){
-      options.success(collection, [], options);
+      options.success({});
     };
     col.fetch(opts);
     col.create(m, opts);
