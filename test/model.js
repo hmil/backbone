@@ -1432,4 +1432,19 @@
     equal(model.getErrors('tooLong').length, 2);
     equal(model.getErrors('right').length, 0);
   });
+
+  test("validation errors copied on clone", 2, function(){
+    var Model = Backbone.Model.extend({
+      schema: {
+        name: Backbone.String
+      },
+      validators: {
+        name: Backbone.validators.required,
+      }
+    });
+    var model = new Model();
+    equal(model.isValid(), false);
+    equal(model.clone().getErrors('name').length, 1);
+  });
+
 })();
