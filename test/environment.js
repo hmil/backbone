@@ -29,6 +29,8 @@
       sync.apply(this, arguments);
     };
 
+    Backbone.compatMode = true;
+
   });
 
   QUnit.testDone(function() {

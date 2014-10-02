@@ -64,6 +64,9 @@
   // form param named `model`.
   Backbone.emulateJSON = false;
 
+  // Turn on `compatMode` to suppress warnings in case you want to use backbone "the old way"
+  Backbone.compatMode = false;
+
   // Utility functions:
   // ------------------
   // Some things that underscore did not provide and some other found in underscore-contrib
@@ -766,7 +769,7 @@
       if (_.isUndefined(SchemaType)) {
         // If schema property is not defined, warns in the console but returns
         // the attribute for backward compatibility with backbone
-        console.warn('Model "'+this.name+'" does not have schema property "'+name+'"');
+        Backbone.compatMode || console.warn('Model "'+this.name+'" does not have schema property "'+name+'"');
         return attr;
       }
       // preserve blank-type values and attributes that are already instances of the right type
