@@ -1247,7 +1247,7 @@
     ok(model.get('child') === other, 'New model reference takes over when setting Model.');
   });
 
-  test("inline schema properties", 6, function() {
+  test("schema syntactic sugar", 6, function() {
     var Model = Backbone.Model.extend({
       schema: {
         posts: [{
@@ -1420,7 +1420,7 @@
     ok(mod.get('child') == null, 'model is unset');
   });
 
-  test("collection events propagate properly", 10, function() {
+  test("nested collection events propagate properly", 10, function() {
     var e_special = 0, e_general = 0;
     var Mod = Backbone.Model.extend({
       schema: {

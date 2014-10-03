@@ -786,15 +786,9 @@
     _processSchema: function() {
       var schema = this.schema;
       _.each(schema, function(SchemaType, key) {
-        if (_.isArray(SchemaType)) {
-          SchemaType = SchemaType[0];
-          if (!_.isFunction(SchemaType)) { // schema is raw attributes hash
-            SchemaType = Backbone.Model.extend({
-              schema: SchemaType
-            });
-          }
+        if (_.isArray(SchemaType)) { // Defines a collection `[model]`
           schema[key] = Backbone.Collection.extend({
-            model: SchemaType
+            model: SchemaType[0]
           });
         } else if (_.isObject(SchemaType) && !_.isFunction(SchemaType)) {
           schema[key] = Backbone.Model.extend({
@@ -888,6 +882,11 @@
   var Collection = Backbone.Collection = function(models, options) {
     options || (options = {});
     if (options.model) this.model = options.model;
+    if (!_.isFunction(this.model)) { // Turns inline model definition in model instance
+      this.model = Model.extend({
+        schema: this.model
+      });
+    }
     if (models instanceof Collection) models = models.models;
     if (options.comparator !== void 0) this.comparator = options.comparator;
     this.Reference = Reference.create(this);

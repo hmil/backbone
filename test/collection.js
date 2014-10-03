@@ -1453,10 +1453,21 @@
 
   test("Construct a collection with another collection", 3, function() {
     var col2 = new Backbone.Collection(col);
-
     equal(col2.size(), 4);
     equal(col2.get(0).get('label'), 'd');
     equal(col2.get(3).get('label'), 'a');
+  });
+
+
+  test("model syntactic sugar", 2, function(){
+    var Col = Backbone.Collection.extend({
+      model: {
+        title: String
+      }
+    });
+    var col = new Col([{title: 'foo'}]);
+    ok(col.first() instanceof Backbone.Model);
+    equal(col.first().get('title'), 'foo');
   });
 
 })();
