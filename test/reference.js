@@ -125,7 +125,6 @@
     equal(ref.get('foo'), 'bar');
   });
 
-  // TODO: polymorph collections should accept reference as one of their ctr
   test('polymorph collections with reference', 4, function() {
     var poCol = new Backbone.Collection();
     poCol.model = function(attrs, options) {
@@ -143,4 +142,64 @@
     equal(poCol.get(1).get('foo'), 'bar');
     equal(poCol.get(2).get('foo'), 'loup');
   });
+
+  test("Reference proxies change events", 1, function(){
+    var col = new Backbone.Collection([{ id: 1, title: 'foo' }]);
+    var Mod = Backbone.Model.extend({
+      schema: { child: col.Reference }
+    });
+    var ref = new col.Reference(1);
+    ref.on('change', function(){
+      ok(true);
+    });
+    col.first().set('title', 'bar');
+  });
+
+  test("removing/adding referenced model triggers change event and binds the model", 3, function() {
+    var e_special = false, e_general = false, e_destroyed = false;
+    var col = new Backbone.Collection();
+    var ref = new col.Reference(1);
+    ref.on('change', function(){
+      ok(true);
+    });
+    var mod = col.add({id: 1, title: 'foo'});
+    mod.set('a', 'test');
+    col.remove(1);
+  });
+
+  test("dereference with callback", 1, function() {
+    var col = new Backbone.Collection([{id: 1, title: 'foo'}]);
+    var ref = new col.Reference(1);
+    var title = ref.$(function(m){
+      return m.get('title');
+    });
+    equal(title, 'foo');
+  });
+
+  test("lookup operator", 1, function() {
+    var Mod = Backbone.Model.extend({
+      sync: function(method, model, options){
+        options.success({title: 'foo'});
+      }
+    });
+    var col = new (Backbone.Collection.extend({
+      model: Mod
+    }));
+    var ref = new col.Reference(1);
+    ref.$$(function(m) {
+      equal(m.get('title'), 'foo');
+    });
+  });
+
+  test("dispose actually makes references unresponsive", 1, function() {
+    var col = new Backbone.Collection({id: 1});
+    var ref = new col.Reference(1);
+    ref.on('change', function(){
+      ok(true);
+    });
+    col.first().set('a', 'a');
+    ref.dispose();
+    col.first().set('a', 'b');
+  });
+
 })();

@@ -1559,4 +1559,12 @@
     equal(model.clone().getErrors('name').length, 1);
   });
 
+  test("dispose actually makes model unresponsive", 0, function() {
+    var mod = new Backbone.Model();
+    mod.on('change', function(){
+      ok(false);
+    });
+    mod.dispose();
+    mod.set('a', 'b');
+  });
 })();

@@ -726,6 +726,18 @@
       return (this.validationError && this.validationError[key]) || [];
     },
 
+    // Call dispose on any model you don't want to use anymore to make sure it can be
+    // garbage collected.
+    // This will recursively call dispose on all child models
+    dispose: function() {
+      this.off();
+      _.each(this.attributes, function(attr) {
+        if (_.isFunction(attr.dispose)) {
+          attr.dispose();
+        }
+      });
+    },
+
     _unbindAttr: function(name, attr) {
       if (attr instanceof Model || attr instanceof Collection) {
         attr.off('all', this._handlers[name], this);
@@ -944,6 +956,7 @@
           options.index = index;
           model.trigger('remove', model, this, options);
         }
+        this.Reference._updateReferences(model.id);
         this._removeReference(model, options);
       }
       return singular ? models[0] : models;
@@ -1037,6 +1050,11 @@
         if (sort || (order && order.length)) this.trigger('sort', this, options);
       }
 
+      // Triggers change event on concerned references
+      for (var i = 0, length = toAdd.length ; i < length ; i++) {
+        this.Reference._updateReferences(toAdd[i].id, options);
+      }
+
       // Return the added (or merged) model (or models).
       return singular ? models[0] : models;
     },
@@ -1054,6 +1072,10 @@
       this._reset();
       models = this.add(models, _.extend({silent: true}, options));
       if (!options.silent) this.trigger('reset', this, options);
+
+      // Triggers change event on all references
+      this.Reference._updateAllReferences(options);
+
       return models;
     },
 
@@ -1192,6 +1214,14 @@
     // Define how to uniquely identify models in the collection.
     modelId: function (attrs) {
       return attrs[this.model.prototype.idAttribute || 'id'];
+    },
+
+    // Frees all events on the collection and all models in the collection for garbage collection
+    dispose: function() {
+      this.off();
+      this.each(function(m) {
+        m.dispose();
+      });
     },
 
     // Private method to reset all internal state. Called when the collection
@@ -1996,6 +2026,38 @@
   // Reference
   // A reference acts as a proxy to a model belonging to a specific collection.
   var Reference = Backbone.Reference = Model.extend({}, {
+    // Internal function called by a reference that wants to listen
+    _addReference: function(ref) {
+      if (this._references[ref.id] == null) {
+        this._references[ref.id] = [];
+      }
+      this._references[ref.id].push(ref);
+    },
+
+    _removeReference: function(ref) {
+      var reg = this._references[ref.id];
+      if (!reg) { return; }
+      reg.splice(reg.indexOf(ref), 1);
+      if (reg.length === 0) {
+        delete this._references[ref.id];
+      }
+    },
+
+    _updateReferences: function(id, options) {
+      var refs = this._references[id];
+      if (refs == null) return;
+      for (var i = 0, length = refs.length ; i < length ; i++) {
+        refs[i].trigger('change', refs[i], options)
+            ._updateModelEventsProxy();
+      }
+    },
+
+    _updateAllReferences: function(options) {
+      _.each(this._references, function(refs, id) {
+        this._updateReferences(id, options);
+      });
+    },
+
     create: function(collection) {
       if (!_.isFunction(collection.model)) return;
       // We need to construct a dummy model in order to clone it's properties
@@ -2008,7 +2070,8 @@
       function proxyProtoProp(fn, name) {
         if (_.isFunction(model[name])) {
           proto[name] = function() {
-            return fn.apply(this.$(), arguments);
+            var $ = this.$();
+            return $ && fn.apply($, arguments);
           };
         } else {
           proto[name] = model[name];
@@ -2020,10 +2083,9 @@
 
       // Reference prototype properties are defined here so they override all
       // pointed model properties
-      return Reference.extend(_.extend({}, proto, {
+      return Reference.extend(_.extend({}, proto, Events, {
         constructor: function(id, options) {
           options || (options = {});
-          if (options.collection) this.collection = options.collection;
 
           if (_.isObject(id))
             id = id[this.idAttribute];
@@ -2032,18 +2094,55 @@
           this.cid = _.uniqueId('c');
           this.id = id;
           this.attributes[this.idAttribute] = id;
+
+          this._updateModelEventsProxy();
+          collection.Reference._addReference(this);
         },
         // By default a reference returns only it's id for json-ing
         toJSON: function() {
           return this.id;
         },
 
-        // Dereferences this reference : returns the pointed model or a dummy model
-        $: function() {
-          return (collection.get(this.id) || new collection.model({}, {}));
+        dispose: function() {
+          this.off();
+          collection.Reference._removeReference(this);
+          this._model.off('all', this.trigger, this);
+        },
+
+        _updateModelEventsProxy: function() {
+          if (this._model) {
+            this._model.off('all', this.trigger, this);
+          }
+          this._model = this.$();
+          if (this._model) {
+            this._model.on('all', this.trigger, this);
+          }
+        },
+
+        // Dereference operator.
+        // returns the referenced model instance or null if it is not loaded in the collection
+        // If cb is not null, it is called iff the referenced model is available.
+        // cb is passed the model as first argument and it's return value is returned.
+        $: function(cb) {
+          var $ = collection.get(this.id);
+          if ($) {
+            return (cb && cb($)) || $;
+          }
+          return null;
+        },
+
+        // lookup operator.
+        // Tries to load the referenced model and executes cb on success.
+        $$: function(cb) {
+          var mod = collection.add({id: this.id});
+          return mod.fetch({
+            success: cb,
+          });
         }
-      }), {
-        collection: collection,
+      }),
+      // constructor properties
+      {
+        _references: {}
       });
     }
   });
