@@ -1328,159 +1328,6 @@
     };
   });
 
-
-  // Backbone.Collection.Reference
-  // -----------------------------
-
-  // This class allows for loosely coupled references to member of some collection.
-  // A reference can refer to a model that's not yet loaded locally and it will 
-  // trigger a change event as soon as the model is loaded. You can also easily swap
-  // the model instance in the collection and your reference will continue reflecting
-  // the state of the model actually in the collection.
-  // References are an experimental feature and must be used with caution as they
-  // have limitations and their behaviour can be surprising if you don't understand
-  // precisely how they work.
-  var Reference = Backbone.Reference = Model.extend({}, {
-    
-    // Called by a reference on instanciation, registers it so that it can receive
-    // `change` events when the collection updates the referenced model
-    _addReference: function(ref) {
-      if (this._references[ref.id] == null) {
-        this._references[ref.id] = [];
-      }
-      this._references[ref.id].push(ref);
-    },
-
-    // Called by a reference on `dispose` to remove it from the list. This is why
-    // getting rid of a reference without calling `.dispose()` leads to a memory leak
-    _removeReference: function(ref) {
-      var reg = this._references[ref.id];
-      if (!reg) { return; }
-      reg.splice(reg.indexOf(ref), 1);
-      if (reg.length === 0) {
-        delete this._references[ref.id];
-      }
-    },
-
-    // Triggers appropriate change events on all references watching the model
-    // with id `id`. Options is passed along with the event.
-    updateReferences: function(id, options) {
-      var refs = this._references[id];
-      if (refs == null) return;
-      for (var i = 0, length = refs.length ; i < length ; i++) {
-        refs[i].trigger('change', refs[i], options)
-            ._updateModelEventsProxy();
-      }
-    },
-
-    // Calls updateReferences on all registered references. Should only be used when
-    // there's no efficient way to know which models have been updated in the collection.
-    updateAllReferences: function(options) {
-      _.each(this._references, function(refs, id) {
-        this.updateReferences(id, options);
-      });
-    },
-
-    // Factory method for creating new reference bound to a specific collection.
-    // Note that calling `new Reference()` is pointless as a reference without collection
-    // doesn't mean anything. One must always use `new collectionInstance.Reference()`
-    // (which is created through this create method)
-    create: function(collection) {
-      if (!_.isFunction(collection.model)) return;
-      var model = collection.model.prototype;
-      var proto = {};
-      // This loops takes each model prototype method and proxies it such that it
-      // applies this method on the referenced model.
-      // eg. when you call ref.myMethod(), you actually call ref.$().myMethod()
-      function proxyProtoProp(fn, name) {
-        if (_.isFunction(model[name])) {
-          proto[name] = function() {
-            var $ = this.$();
-            return $ && fn.apply($, arguments);
-          };
-        } else {
-          proto[name] = model[name];
-        }
-      }
-      for(var name in model) {
-        proxyProtoProp(model[name], name);
-      }
-
-      // Reference prototype properties are defined here so they override all
-      // pointed model properties
-      return Reference.extend(_.extend({}, proto, Events, {
-        constructor: function(id, options) {
-          options || (options = {});
-
-          if (_.isObject(id))
-            id = id[this.idAttribute];
-
-          this.attributes = {};
-          this.cid = _.uniqueId('c');
-          this.id = id;
-          this.attributes[this.idAttribute] = id;
-
-          this._updateModelEventsProxy();
-          collection.Reference._addReference(this);
-        },
-        // By default a reference returns only it's id for json-ing
-        toJSON: function() {
-          return this.id;
-        },
-
-        dispose: function() {
-          this.off();
-          collection.Reference._removeReference(this);
-          this._model.off('all', this.trigger, this);
-        },
-
-        // Reference has it's own Event prototype which acts as a proxy for model
-        // events. All model events proxy through the reference but additionnal
-        // 'change' events are fired directly on the reference instance when the
-        // collection changed the model at id `this.id`.
-        _updateModelEventsProxy: function() {
-          if (this._model) {
-            this._model.off('all', this.trigger, this);
-          }
-          this._model = this.$();
-          if (this._model) {
-            this._model.on('all', this.trigger, this);
-          }
-        },
-
-        // Dereference operator.
-        // returns the referenced model instance or null if it is not loaded in the collection
-        // If cb is not null, it is called iff the referenced model is available.
-        // cb is passed the model as first argument and it's return value is returned.
-        $: function(cb) {
-          var $ = collection.get(this.id);
-          if ($) {
-            return (cb && cb($)) || $;
-          }
-          return null;
-        },
-
-        // lookup operator.
-        // Tries to load the referenced model and executes cb on success.
-        // note that it returns the xhr used for fetching which may be usefull to
-        // add an error callback.
-        $$: function(cb, options) {
-          var mod = collection.add({id: this.id});
-          return mod.fetch(_.extend({
-            success: cb,
-          }, options));
-        }
-      }),
-      // constructor properties
-      {
-        // each Reference constructor (created with `Reference.create`) keeps track of
-        // it's currently active instances such that it can dispatch appropriate 
-        // change events when the collection updates
-        _references: {}
-      });
-    }
-  });
-
   // Backbone.View
   // -------------
 
@@ -2175,6 +2022,159 @@
       model.trigger('error', model, resp, options);
     };
   };
+
+  
+  // Backbone.Collection.Reference
+  // -----------------------------
+
+  // This class allows for loosely coupled references to member of some collection.
+  // A reference can refer to a model that's not yet loaded locally and it will 
+  // trigger a change event as soon as the model is loaded. You can also easily swap
+  // the model instance in the collection and your reference will continue reflecting
+  // the state of the model actually in the collection.
+  // References are an experimental feature and must be used with caution as they
+  // have limitations and their behaviour can be surprising if you don't understand
+  // precisely how they work.
+  var Reference = Backbone.Reference = Model.extend({}, {
+    
+    // Called by a reference on instanciation, registers it so that it can receive
+    // `change` events when the collection updates the referenced model
+    _addReference: function(ref) {
+      if (this._references[ref.id] == null) {
+        this._references[ref.id] = [];
+      }
+      this._references[ref.id].push(ref);
+    },
+
+    // Called by a reference on `dispose` to remove it from the list. This is why
+    // getting rid of a reference without calling `.dispose()` leads to a memory leak
+    _removeReference: function(ref) {
+      var reg = this._references[ref.id];
+      if (!reg) { return; }
+      reg.splice(reg.indexOf(ref), 1);
+      if (reg.length === 0) {
+        delete this._references[ref.id];
+      }
+    },
+
+    // Triggers appropriate change events on all references watching the model
+    // with id `id`. Options is passed along with the event.
+    updateReferences: function(id, options) {
+      var refs = this._references[id];
+      if (refs == null) return;
+      for (var i = 0, length = refs.length ; i < length ; i++) {
+        refs[i].trigger('change', refs[i], options)
+            ._updateModelEventsProxy();
+      }
+    },
+
+    // Calls updateReferences on all registered references. Should only be used when
+    // there's no efficient way to know which models have been updated in the collection.
+    updateAllReferences: function(options) {
+      _.each(this._references, function(refs, id) {
+        this.updateReferences(id, options);
+      });
+    },
+
+    // Factory method for creating new reference bound to a specific collection.
+    // Note that calling `new Reference()` is pointless as a reference without collection
+    // doesn't mean anything. One must always use `new collectionInstance.Reference()`
+    // (which is created through this create method)
+    create: function(collection) {
+      if (!_.isFunction(collection.model)) return;
+      var model = collection.model.prototype;
+      var proto = {};
+      // This loops takes each model prototype method and proxies it such that it
+      // applies this method on the referenced model.
+      // eg. when you call ref.myMethod(), you actually call ref.$().myMethod()
+      function proxyProtoProp(fn, name) {
+        if (_.isFunction(model[name])) {
+          proto[name] = function() {
+            var $ = this.$();
+            return $ && fn.apply($, arguments);
+          };
+        } else {
+          proto[name] = model[name];
+        }
+      }
+      for(var name in model) {
+        proxyProtoProp(model[name], name);
+      }
+
+      // Reference prototype properties are defined here so they override all
+      // pointed model properties
+      return Reference.extend(_.extend({}, proto, Events, {
+        constructor: function(id, options) {
+          options || (options = {});
+
+          if (_.isObject(id))
+            id = id[this.idAttribute];
+
+          this.attributes = {};
+          this.cid = _.uniqueId('c');
+          this.id = id;
+          this.attributes[this.idAttribute] = id;
+
+          this._updateModelEventsProxy();
+          collection.Reference._addReference(this);
+        },
+        // By default a reference returns only it's id for json-ing
+        toJSON: function() {
+          return this.id;
+        },
+
+        dispose: function() {
+          this.off();
+          collection.Reference._removeReference(this);
+          this._model.off('all', this.trigger, this);
+        },
+
+        // Reference has it's own Event prototype which acts as a proxy for model
+        // events. All model events proxy through the reference but additionnal
+        // 'change' events are fired directly on the reference instance when the
+        // collection changed the model at id `this.id`.
+        _updateModelEventsProxy: function() {
+          if (this._model) {
+            this._model.off('all', this.trigger, this);
+          }
+          this._model = this.$();
+          if (this._model) {
+            this._model.on('all', this.trigger, this);
+          }
+        },
+
+        // Dereference operator.
+        // returns the referenced model instance or null if it is not loaded in the collection
+        // If cb is not null, it is called iff the referenced model is available.
+        // cb is passed the model as first argument and it's return value is returned.
+        $: function(cb) {
+          var $ = collection.get(this.id);
+          if ($) {
+            return (cb && cb($)) || $;
+          }
+          return null;
+        },
+
+        // lookup operator.
+        // Tries to load the referenced model and executes cb on success.
+        // note that it returns the xhr used for fetching which may be usefull to
+        // add an error callback.
+        $$: function(cb, options) {
+          var mod = collection.add({id: this.id});
+          return mod.fetch(_.extend({
+            success: cb,
+          }, options));
+        }
+      }),
+      // constructor properties
+      {
+        // each Reference constructor (created with `Reference.create`) keeps track of
+        // it's currently active instances such that it can dispatch appropriate 
+        // change events when the collection updates
+        _references: {}
+      });
+    }
+  });
 
   return Backbone;
 
