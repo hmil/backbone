@@ -120,6 +120,11 @@
     deepEqual(model.omit('foo', 'bar'), {'baz': 'c'});
   });
 
+  test("chain", function() {
+    var model = new Backbone.Model({ a: 0, b: 1, c: 2 });
+    deepEqual(model.chain().pick("a", "b", "c").values().compact().value(), [1, 2]);
+  });
+
   test("clone", 10, function() {
     var a = new Backbone.Model({ 'foo': 1, 'bar': 2, 'baz': 3});
     var b = a.clone();
@@ -472,6 +477,14 @@
     equal(this.syncArgs.options.attrs.d, 4);
     equal(this.syncArgs.options.attrs.a, undefined);
     equal(this.ajaxSettings.data, "{\"b\":2,\"d\":4}");
+  });
+
+  test("save with PATCH and different attrs", function() {
+    doc.clear().save({b: 2, d: 4}, {patch: true, attrs: {B: 1, D: 3}});
+    equal(this.syncArgs.options.attrs.D, 3);
+    equal(this.syncArgs.options.attrs.d, undefined);
+    equal(this.ajaxSettings.data, "{\"B\":1,\"D\":3}");
+    deepEqual(doc.attributes, {b: 2, d: 4});
   });
 
   test("save in positional style", 1, function() {
@@ -1127,4 +1140,431 @@
     model.set({a: true});
   });
 
+  test("extends also extends hash properties", 1, function() {
+    var Parent = Backbone.Model.extend({
+      myProp: {
+        a: 1,
+        b: 2
+      }
+    });
+    var Child = Parent.extend({
+      myProp: {
+        b: 3,
+        c: 'foo'
+      }
+    });
+    var model = new Child;
+    deepEqual(model.myProp, {a: 1, b: 3, c: 'foo'});
+  });
+
+  test("schema types are applied", 3, function() {
+    var Model = Backbone.Model.extend({
+      schema: {
+        str: Backbone.String,
+        num: Backbone.Number,
+        bool: Backbone.Boolean
+      }
+    });
+    var model = new Model({
+      str: 123,
+      num: '123',
+      bool: 123
+    });
+    equal(typeof model.get('str'), 'string');
+    equal(typeof model.get('num'), 'number');
+    equal(typeof model.get('bool'), 'boolean');
+  });
+
+  test("boolean type accepts numeric input", 4, function() {
+    var Model = Backbone.Model.extend({
+      schema: {
+        st: Backbone.Boolean,
+        sf: Backbone.Boolean,
+        nt: Backbone.Boolean,
+        nf: Backbone.Boolean
+      }
+    });
+    var model = new Model({
+      st: '1',
+      sf: '0',
+      nt: 1,
+      nf: 0
+    });
+    strictEqual(model.get('st').valueOf(), true);
+    strictEqual(model.get('sf').valueOf(), false);
+    strictEqual(model.get('nt').valueOf(), true);
+    strictEqual(model.get('nf').valueOf(), false);
+  });
+
+  test("nested models", 2, function() {
+    var Model = Backbone.Model.extend({
+      schema: {
+        bar: Backbone.String
+      },
+      foo: function() {
+        return 'foo';
+      }
+    });
+    var Wrapper = Backbone.Model.extend({
+      schema: {
+        child: Model
+      }
+    });
+    var model = new Wrapper({
+      child: {
+        bar: 'hqhq'
+      }
+    });
+    equal(model.get('child').foo(), 'foo');
+    equal(model.get('child').get('bar'), 'hqhq');
+  });
+
+  test("nested models with external reference", 5, function() {
+    var Model = Backbone.Model.extend({
+      schema: {
+        name: Backbone.String
+      },
+      foo: function() {
+        return 'foo';
+      }
+    });
+    var Wrapper = Backbone.Model.extend({
+      schema: {
+        child: Model
+      }
+    });
+    var child = new Model({name: 'child'});
+    var other = new Model({name: 'other'});
+    var model = new Wrapper({
+      child: child
+    });
+    ok(model.get('child') === child, 'Reference is kept on initial set.');
+    model.set('child', {name: 'edited'});
+    ok(model.get('child') === child, 'Reference is kept when setting JSON.');
+    equal(child.get('name'), 'edited', 'Model is modified when setting JSON.');
+    model.set('child', other);
+    ok(model.get('child') !== child, 'Reference is lost when setting Model.');
+    ok(model.get('child') === other, 'New model reference takes over when setting Model.');
+  });
+
+  test("schema syntactic sugar", 6, function() {
+    var Model = Backbone.Model.extend({
+      schema: {
+        posts: [{
+          author: {
+            name: Backbone.String
+          },
+          comments: [{
+            text: Backbone.String,
+          }]
+        }]
+      }
+    });
+
+    var model = new Model({
+      posts: [{
+        author: {
+          name: 'jack'
+        },
+        comments: [{
+          text: 'cool'
+        }, {
+          text: 'nice'
+        }]
+      }]
+    });
+
+    ok(model.get('posts') instanceof Backbone.Collection);
+    ok(model.get('posts').first() instanceof Backbone.Model);
+    ok(model.get('posts').first().get('author') instanceof Backbone.Model);
+    ok(model.get('posts').first().get('comments') instanceof Backbone.Collection);
+    ok(model.get('posts').first().get('comments').first() instanceof Backbone.Model);
+    equal(model.get('posts').first().get('comments').first().get('text'), 'cool');
+  });
+
+  test("setting nested data", 3, function() {
+    var Model = Backbone.Model.extend({
+      schema: {
+        mod: {
+          title: Backbone.String
+        },
+        coll: [{
+          title: Backbone.String
+        }]
+      }
+    });
+    var model = new Model({
+      mod: {
+        title: 'foo',
+        name: ''
+      },
+      coll: [{
+        title: 'bar'
+      }, {
+        title: 'bar'
+      }]
+    });
+    model.set('mod', {
+      name: 'foo2'
+    });
+    equal(model.get('mod').get('title'), 'foo', 'setting a model updates it');
+    equal(model.get('mod').get('name'), 'foo2', 'setting a model updates it');
+
+    model.set('coll', [{
+      title: 'bar'
+    }]);
+    model.get('coll').each(function(m) {
+      equal(m.get('title'), 'bar', 'setting a collection resets it');
+    });
+  });
+
+  test("toJSON with nested data", 1, function() {
+    var Model = Backbone.Model.extend({
+      schema: {
+        mod: {
+          title: Backbone.String
+        },
+        coll: [{
+          title: Backbone.String
+        }]
+      }
+    });
+    var model = new Model({
+      mod: {
+        title: 'foo',
+        name: ''
+      },
+      coll: [{
+        title: 'bar'
+      }, {
+        title: 'foo'
+      }]
+    });
+    deepEqual(model.toJSON(), {
+      mod: {title: 'foo', name: ''},
+      coll:[{title: 'bar'}, {title:'foo'}]
+    });
+  });
+
+
+  test("models propagate nested model change events", 6, function(){
+    var e_special = 0, e_general = 0;
+    var Model = Backbone.Model.extend({
+      schema: {
+        child: { title: String }
+      }
+    });
+    var Child = Backbone.Model.extend({
+      schema: {title: 'foo'}
+    });
+    var mod = new Model({child: Child});
+    mod.on('change:child', function(){
+      ++e_special;
+    });
+    mod.on('change', function(){
+      ++e_general;
+    });
+    mod.get('child').set('title', 'bar');
+    equal(e_special, 1, 'special event was fired once and oly once (indirect change)');
+    equal(e_general, 1, 'general event was fired once and oly once (indirect change)');
+    e_special = e_general = 0;
+    mod.set({child: {title: 'foo'}});
+    equal(e_special, 1, 'special event was fired (direct change)');
+    equal(e_general, 1, 'general event was fired (direct change)');
+    e_special = e_general = 0;
+    mod.set({child: new Child()});
+    equal(e_special, 1, 'special event was fired (instance change)');
+    equal(e_general, 1, 'general event was fired (instance change)');
+  });
+
+  test("models propagate nested model change events", 2, function(){
+    var e_special = 0, e_general = 0;
+    var Model = Backbone.Model.extend({
+      schema: {
+        child: { title: String }
+      }
+    });
+    var mod = new Model({child: {title: 'foo'}});
+    mod.on('change:child', function(){
+      ++e_special;
+    });
+    mod.on('change', function(){
+      ++e_general;
+    });
+    mod.get('child').set('title', 'bar');
+    equal(e_special, 1, 'special event was fired');
+    equal(e_general, 1, 'general event was fired');
+  });
+
+  test("destroying nested model triggers change event and unsets it", 4, function() {
+    var e_special = false, e_general = false, e_destroyed = false;
+    var Model = Backbone.Model.extend({
+      schema: {
+        child: { title: String }
+      }
+    });
+    var mod = new Model({child: {title: 'foo'}});
+    mod.on('change:child', function(){
+      e_special = true;
+    });
+    mod.on('change', function(){
+      e_general = true;
+    });
+    mod.on('destroyed', function() {
+      e_destroyed = true;
+    });
+    mod.get('child').destroy();
+    equal(e_special, true, 'special event was fired');
+    equal(e_general, true, 'general event was fired');
+    equal(e_destroyed, false, 'destroy event was not fired');
+    ok(mod.get('child') == null, 'model is unset');
+  });
+
+  test("nested collection events propagate properly", 10, function() {
+    var e_special = 0, e_general = 0;
+    var Mod = Backbone.Model.extend({
+      schema: {
+        posts: [{title: String}]
+      }
+    });
+    var mod = new Mod({posts: [{title: 'foo', id: 2}]});
+    mod.on('change:posts', function() {
+      ++e_special;
+    });
+    mod.on('change', function() {
+      ++e_general;
+    });
+    var posts = mod.get('posts');
+    posts.comparator = 'id';
+    posts.add({title: 'foo', id: 1}, {sort: false});
+    equal(e_special, 1, 'special event fired (add)');
+    equal(e_special, 1, 'general event fired (add)');
+    e_special = e_general = 0;
+    posts.sort();
+    equal(e_special, 1, 'special event fired (sort)');
+    equal(e_special, 1, 'general event fired (sort)');
+    e_special = e_general = 0;
+    posts.first().set('title', 'loup');
+    equal(e_special, 1, 'special event fired (change)');
+    equal(e_special, 1, 'general event fired (change)');
+    e_special = e_general = 0;
+    posts.remove(1);
+    equal(e_special, 1, 'special event fired (remove)');
+    equal(e_special, 1, 'general event fired (remove)');
+    e_special = e_general = 0;
+    posts.reset([{title: 'foobar'}]);
+    equal(e_special, 1, 'special event fired (reset)');
+    equal(e_special, 1, 'general event fired (reset)');
+    e_special = e_general = 0;
+  });
+
+  test("virtual attributes", 2, function() {
+
+    var Model = Backbone.Model.extend({
+      schema: {
+        value: Backbone.String
+      },
+      virtual: {
+        subs: function(size) {
+          if (!size) size = 2;
+          return this.get('value').substr(0, size);
+        }
+      }
+    });
+
+    var model = new Model({
+      value: 'test'
+    });
+
+    equal(model.get('subs'), 'te');
+    equal(model.get('subs', 3), 'tes');
+  });
+
+  test("labels", 1, function() {
+    var model = new (Backbone.Model.extend({
+      labels: {
+        foo: 'foo label',
+      }
+    }))();
+
+    equal(model.getLabel('foo'), 'foo label');
+  });
+
+
+  test("Construct a model with a model", 2, function() {
+    var model = new proxy(doc);
+
+    equal(model.id, '1-the-tempest');
+    equal(model.get('title'), 'The Tempest');
+  });
+
+  test("Basic validation", 4, function() {
+    var Model = Backbone.Model.extend({
+      schema: {
+        title: Backbone.String
+      },
+      validators: {
+        title: Backbone.validators.required
+      }
+    });
+    var model = new Model();
+    var model2 = new Model({title: 'foo'});
+
+    equal(model.isValid(), false);
+    equal(model.getErrors('title').length, 1);
+    equal(model2.isValid(), true);
+    equal(model2.getErrors('title').length, 0);
+  });
+
+  test("validate length", 4, function() {
+    var validators = [
+      Backbone.validators.length({max: 5, min: 3}),
+      Backbone.validators.length({eq: 4})
+    ];
+    var Model = Backbone.Model.extend({
+      schema: {
+        tooShort: Backbone.String,
+        tooLong: Backbone.String,
+        right: Backbone.String
+      },
+      validators: {
+        tooShort: validators,
+        tooLong: validators,
+        right: validators
+      }
+    });
+    var model = new Model({
+      tooShort: 'a',
+      tooLong: 'abcdef',
+      right: 'abcd'
+    });
+
+    equal(model.isValid(), false);
+    equal(model.getErrors('tooShort').length, 2);
+    equal(model.getErrors('tooLong').length, 2);
+    equal(model.getErrors('right').length, 0);
+  });
+
+  test("validation errors copied on clone", 2, function(){
+    var Model = Backbone.Model.extend({
+      schema: {
+        name: Backbone.String
+      },
+      validators: {
+        name: Backbone.validators.required,
+      }
+    });
+    var model = new Model();
+    equal(model.isValid(), false);
+    equal(model.clone().getErrors('name').length, 1);
+  });
+
+  test("dispose actually makes model unresponsive", 0, function() {
+    var mod = new Backbone.Model();
+    mod.on('change', function(){
+      ok(false);
+    });
+    mod.dispose();
+    mod.set('a', 'b');
+  });
 })();

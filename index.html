@@ -4,7 +4,7 @@
   <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
   <meta http-equiv="X-UA-Compatible" content="chrome=1" />
   <meta name="viewport" content="width=device-width">
-  <link rel="canonical" href="http://backbonejs.org" />
+  <link rel="canonical" href="http://hmil.github.io/backbone" />
   <title>Backbone.js</title>
   <style>
     body {
@@ -146,7 +146,7 @@
         -ms-box-shadow: inset 0 1px 10px 1px #5c8bee, 0 1px 0 #1d2c4d, 0 2px 0 #1f3053, 0 4px 3px 0 #111111;
         -o-box-shadow: inset 0 1px 10px 1px #5c8bee, 0 1px 0 #1d2c4d, 0 2px 0 #1f3053, 0 4px 3px 0 #111111;
         box-shadow: inset 0 1px 10px 1px #5c8bee, 0 1px 0 #1d2c4d, 0 2px 0 #1f3053, 0 4px 3px 0 #111111;
-        margin-top: 5px; margin-bottom: 10px }
+        margin-top: 5px; margin-bottom: 10px; }
     a img {
       border: 0;
     }
@@ -288,7 +288,7 @@
       Backbone.js <span class="version">(1.1.2)</span>
     </a>
     <ul class="toc_section">
-      <li>&raquo; <a href="http://github.com/jashkenas/backbone">GitHub Repository</a></li>
+      <li>&raquo; <a href="http://github.com/hmil/backbone">GitHub Repository</a></li>
       <li>&raquo; <a href="docs/backbone.html">Annotated Source</a></li>
     </ul>
 
@@ -320,6 +320,9 @@
     <ul class="toc_section">
       <li>– <a href="#Model-extend">extend</a></li>
       <li>– <a href="#Model-constructor">constructor / initialize</a></li>
+      <li>– <a href="#Model-schema">schema</a></li>
+      <li>– <a href="#Model-virtual">virtual</a></li>
+      <li>– <a href="#Model-validators">validators</a></li>
       <li>– <a href="#Model-get">get</a></li>
       <li>– <a href="#Model-set">set</a></li>
       <li>– <a href="#Model-escape">escape</a></li>
@@ -362,7 +365,7 @@
       <li>– <a href="#Collection-models">models</a></li>
       <li>– <a href="#Collection-toJSON">toJSON</a></li>
       <li>– <a href="#Collection-sync">sync</a></li>
-      <li>– <a href="#Collection-Underscore-Methods"><b>Underscore Methods (28)</b></a></li>
+      <li>– <a href="#Collection-Underscore-Methods"><b>Underscore Methods (32)</b></a></li>
       <li>– <a href="#Collection-add">add</a></li>
       <li>– <a href="#Collection-remove">remove</a></li>
       <li>– <a href="#Collection-reset">reset</a></li>
@@ -385,6 +388,7 @@
       <li>– <a href="#Collection-clone">clone</a></li>
       <li>– <a href="#Collection-fetch">fetch</a></li>
       <li>– <a href="#Collection-create">create</a></li>
+      <li>– <a href="#Collection-Reference">Reference</a></li>
     </ul>
 
     <a class="toc_title" href="#Router">
@@ -489,7 +493,6 @@
       <li>– <a href="#examples-slavery-footprint">Slavery Footprint</a></li>
       <li>– <a href="#examples-stripe">Stripe</a></li>
       <li>– <a href="#examples-airbnb">Airbnb</a></li>
-      <li>– <a href="#examples-diaspora">Diaspora</a></li>
       <li>– <a href="#examples-soundcloud">SoundCloud Mobile</a></li>
       <li>- <a href="#examples-artsy">Art.sy</a></li>
       <li>– <a href="#examples-pandora">Pandora</a></li>
@@ -519,6 +522,30 @@
     </p>
 
     <p>
+      <b>Hi there !</b><br />
+      You are currently reading the doc for my backbone fork. 
+      If you are looking for the original backbone doc, 
+      <b><a href="http://backbonejs.org">here's where you want to go</a></b>.
+    </p> 
+
+    <p>
+      This fork introduces the following features :
+    </p>
+
+    <ul>
+      <li><a href="#Model-schema">Nested models and collections</a></li>
+      <li><a href="#Model-virtual">Virtual attributes</a></li>
+      <li><a href="#Model-validators">More opinionated validation</a></li>
+      <li><a href="#Collection-Reference">Cross collection references</a></li>
+    </ul>
+  
+    <p>
+      Of course these features come fully tested and do not break the original 
+      backbone test suite. In practice, you can use only part or none of what's
+      been added, the original backbone behaviour is completely preserved.
+    </p>
+
+    <p>
       Backbone.js gives structure to web applications
       by providing <b>models</b> with key-value binding and custom events,
       <b>collections</b> with a rich API of enumerable functions,
@@ -527,22 +554,26 @@
     </p>
 
     <p>
-      The project is <a href="http://github.com/jashkenas/backbone/">hosted on GitHub</a>,
+      The project is <a href="http://github.com/hmil/backbone/">hosted on GitHub</a>,
       and the <a href="docs/backbone.html">annotated source code</a> is available,
       as well as an online <a href="test/">test suite</a>,
       an <a href="examples/todos/index.html">example application</a>,
       a <a href="https://github.com/jashkenas/backbone/wiki/Tutorials%2C-blog-posts-and-example-sites">list of tutorials</a>
       and a <a href="#examples">long list of real-world projects</a> that use Backbone.
-      Backbone is available for use under the <a href="http://github.com/jashkenas/backbone/blob/master/LICENSE">MIT software license</a>.
+      Backbone is available for use under the <a href="http://github.com/hmil/backbone/blob/master/LICENSE">MIT software license</a>.
     </p>
 
     <p>
+      <b>For general backbone stuff</b>:<br />
       You can report bugs and discuss features on the
       <a href="http://github.com/jashkenas/backbone/issues">GitHub issues page</a>,
       on Freenode IRC in the <tt>#documentcloud</tt> channel, post questions to the
       <a href="https://groups.google.com/forum/#!forum/backbonejs">Google Group</a>,
       add pages to the <a href="https://github.com/jashkenas/backbone/wiki">wiki</a>
       or send tweets to <a href="http://twitter.com/documentcloud">@documentcloud</a>.
+      <br />
+      <b>For this specific backbone fork</b>, use the
+      <a href="http://github.com/hmil/backbone/issues">dedicated issue tracker</a>.
     </p>
 
     <p>
@@ -570,11 +601,11 @@
         </td>
       </tr>
       <tr>
-        <td><a class="punch" href="https://raw.github.com/jashkenas/backbone/master/backbone.js">Edge Version (master)</a></td>
+        <td><a class="punch" href="https://raw.github.com/hmil/backbone/master/backbone.js">Edge Version (master)</a></td>
         <td>
           <i>Unreleased, use at your own risk</i>
-          <a class="travis-badge" href="https://travis-ci.org/jashkenas/backbone">
-            <img src="https://travis-ci.org/jashkenas/backbone.png" />
+          <a class="travis-badge" href="https://travis-ci.org/hmil/backbone">
+            <img src="https://travis-ci.org/hmil/backbone.png" />
           </a>
         </td>
       </tr>
@@ -585,7 +616,7 @@
       <a href="http://underscorejs.org/">Underscore.js</a> <small>( >= 1.5.0)</small>.
       For RESTful persistence, history support via <a href="#Router">Backbone.Router</a>
       and DOM manipulation with <a href="#View">Backbone.View</a>, include
-      <b><a href="http://jquery.com">jQuery</a></b>, and
+      <b><a href="http://jquery.com">jQuery</a></b> ( >= 1.11.0), and
       <b><a href="https://github.com/douglascrockford/JSON-js">json2.js</a></b> for older
       Internet Explorer support.
       <i>(Mimics of the Underscore and jQuery APIs, such as
@@ -804,8 +835,8 @@ object.off();
     <p id="Events-once">
       <b class="header">once</b><code>object.once(event, callback, [context])</code>
       <br />
-      Just like <a href="#Events-on">on</a>, but causes the bound callback to only
-      fire once before being removed. Handy for saying "the next time that X happens, do this".
+      Just like <a href="#Events-on">on</a>, but causes the bound callback to fire
+      only once before being removed. Handy for saying "the next time that X happens, do this".
     </p>
 
     <p id="Events-listenTo">
@@ -843,7 +874,7 @@ view.stopListening(model);
       <b class="header">listenToOnce</b><code>object.listenToOnce(other, event, callback)</code>
       <br />
       Just like <a href="#Events-listenTo">listenTo</a>, but causes the bound
-      callback to only fire once before being removed.
+      callback to fire only once before being removed.
     </p>
 
     <p id="Events-catalog">
@@ -1025,11 +1056,94 @@ var Library = Backbone.Model.extend({
       <a href="#Model-set">set</a> on the model.
     </p>
 
+
+    <p id="Model-schema">
+      <b class="header">schema</b>
+      <br />
+      This fork encourages you to be explicit about what your models are supposed
+      to contain. You should define a `schema` property which represents what your
+      model contains. Unless <tt>Backbone.compatMode</tt> is set to true,
+      a warning will be printed in the console if an attribute is added
+      to the model but the schema doesnt defines it. This helps spotting typos in your code.
+      <br />
+      Each attribute is defined as a <tt>key: constructor</tt> pair. While in practice you 
+      can use any constructor, you should use <tt>Backbone.String</tt>, <tt>Backbone.Number</tt>,
+      <tt>Backbone.Boolean</tt> for basic types and Collections or Model constructor for 
+      more advanced stuff.
+    </p>
+<pre>
+var Character = Backbone.model.extend({
+  schema: {
+    name: Backbone.String,
+    items: [Item],
+    combatSkills: {
+      damage: Backbone.Number,
+      armor: Backbone.Number
+    }
+  }
+});
+</pre>
+    <p>
+      You can also use the array notation [model] when you want a collection, 
+      and nested attribute hash when you want a model.
+      This is syntaxic sugar that expands to standard Collections and Models.
+    </p>
+
+    <p id="Model-virtual">
+      <b class="header">virtual</b>
+      <br />
+      Some model properties can be computed using model attributes and you don't want
+      to store them as attributes although you want to access them with .get() so that
+      you make no special case when using these properties.
+      <br />
+      Define such attributes as methods of the virtual property.
+      <br />
+      In cas get() is called with extra parameters, these are passed to the virtual
+      attribute function.
+    </p>
+<pre>
+var Character = Backbone.model.extend({
+  virtual: {
+    fullName: function(){
+      return this.get('firstname')+this.get('lastname');
+    }
+  }
+});
+</pre>
+  
+    <p id="Model-validators">
+      <b class="header">validators</b>
+      <br />
+      A default validate implementation is provided. It runs all validators defined
+      in the validators property against their respective attributes and returns a hash
+      of errors indexed by attribute name.
+    </p>
+<pre>
+var MyModel = Backbone.model.extend({
+  validators: {
+    name: Backbone.validators.required,
+    age: function(age) {
+      return (age &lt; 18) ? 'you must be at least 18' : null;
+    }
+  }
+});
+</pre>
+    <p>
+      A validator is a function that takes <tt>attr, attrName, attrs</tt> as arguments
+      and returns a string in case of error.
+      <br />
+      A few built-in validators are available to perform most common validation tasks.
+      Look for <tt>Backbone.validators</tt> in <a href="docs/backbone.html">the annotated source</a>.
+    </p>
+
     <p id="Model-get">
-      <b class="header">get</b><code>model.get(attribute)</code>
+      <b class="header">get</b><code>model.get(attribute[, args...])</code>
       <br />
       Get the current value of an attribute from the model. For example:
       <tt>note.get("title")</tt>
+      <br />
+      If the attribute is virtual, you can pass extra argument which will be passed
+      to it's function.
     </p>
 
     <p id="Model-set">
@@ -1195,7 +1309,7 @@ alert("Dessert will be " + (new Meal).get('dessert'));
       serialization, or for augmentation before being sent to the server. The
       name of this method is a bit confusing, as it doesn't actually return a
       JSON string &mdash; but I'm afraid that it's the way that the
-      <a href="https://developer.mozilla.org/en/JSON#toJSON()_method">JavaScript API for <b>JSON.stringify</b></a>
+      <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON_behavior">JavaScript API for <b>JSON.stringify</b></a>
       works.
     </p>
 
@@ -1634,7 +1748,8 @@ var Library = Backbone.Collection.extend({
       comparator option will prevent sorting. If you define an
       <b>initialize</b> function, it will be invoked when the collection is
       created. There are a couple of options that, if provided, are attached to
-      the collection directly: <tt>model</tt> and <tt>comparator</tt>.
+      the collection directly: <tt>model</tt> and <tt>comparator</tt>.<br />
+      Pass <tt>null</tt> for <tt>models</tt> to create an empty Collection with <tt>options</tt>.
     </p>
 
 <pre>
@@ -1682,9 +1797,9 @@ alert(JSON.stringify(collection));
     </p>
 
     <p id="Collection-Underscore-Methods">
-      <b class="header">Underscore Methods (28)</b>
+      <b class="header">Underscore Methods (32)</b>
       <br />
-      Backbone proxies to <b>Underscore.js</b> to provide 28 iteration functions
+      Backbone proxies to <b>Underscore.js</b> to provide 32 iteration functions
       on <b>Backbone.Collection</b>. They aren't all documented here, but
       you can take a look at the Underscore documentation for the full details&hellip;
     </p>
@@ -1710,13 +1825,18 @@ alert(JSON.stringify(collection));
       <li><a href="http://underscorejs.org/#size">size</a></li>
       <li><a href="http://underscorejs.org/#first">first (head, take)</a></li>
       <li><a href="http://underscorejs.org/#initial">initial</a></li>
-      <li><a href="http://underscorejs.org/#rest">rest (tail)</a></li>
+      <li><a href="http://underscorejs.org/#rest">rest (tail, drop)</a></li>
       <li><a href="http://underscorejs.org/#last">last</a></li>
       <li><a href="http://underscorejs.org/#without">without</a></li>
       <li><a href="http://underscorejs.org/#indexOf">indexOf</a></li>
       <li><a href="http://underscorejs.org/#lastIndexOf">lastIndexOf</a></li>
       <li><a href="http://underscorejs.org/#isEmpty">isEmpty</a></li>
       <li><a href="http://underscorejs.org/#chain">chain</a></li>
+      <li><a href="http://underscorejs.org/#difference">difference</a></li>
+      <li><a href="http://underscorejs.org/#sample">sample</a></li>
+      <li><a href="http://underscorejs.org/#partition">partition</a></li>
+      <li><a href="http://underscorejs.org/#countBy">countBy</a></li>
+      <li><a href="http://underscorejs.org/#indexBy">indexBy</a></li>
     </ul>
 
 <pre>
@@ -1787,7 +1907,8 @@ ships.add([
       of models (or attribute hashes), triggering a single <tt>"reset"</tt> event
       at the end. Returns the newly-set models.
       For convenience, within a <tt>"reset"</tt> event, the list of any
-      previous models is available as <tt>options.previousModels</tt>.
+      previous models is available as <tt>options.previousModels</tt>.<br />
+      Pass <tt>null</tt> for <tt>models</tt> to empty your Collection with <tt>options</tt>.
     </p>
 
     <p>
@@ -2135,6 +2256,40 @@ var othello = nypl.create({
 });
 </pre>
 
+    <p id="Collection-Reference">
+      <b class="header">Reference</b><code>collection.Reference</code>
+      <br />
+      Create a weak reference to a collection using it's Reference constructor.
+      Such reference designates a model that may not yet be present in the collection.
+      In case another model with the same id replaces the current one in the collection,
+      the reference keeps track of the model that's still in the collection.
+      <br />
+      A reference proxies all method from the collection's model prototype. Events
+      are bound to the reference, not the underlying model. All events originating form
+      the model appear as if they came from the reference. Additionnal <tt>change</tt>
+      events are fired when the underlying model is added, removed or swapped in the
+      collection.
+    </p>
+    
+    <p id="Reference-dereference">
+      <b class="header">Dereference operator</b><code>reference.$([cb])</code>
+      <br />
+      Returns the referenced model instance or null if it is not loaded in the collection
+      If cb is not null, it is called iff the referenced model is available.
+      cb is passed the model as first argument and it's return value is returned.
+      <br />
+      cb is useful if you want to conditionnaly execute a statement if the referenced 
+      model is available.
+    </p>
+
+    <p id="Reference-lookup">
+      <b class="header">Lookup operator</b><code>reference.$$(cb, options)</code>
+      <br />
+      Tries to load the referenced model and executes cb on success.
+      Note that it returns the xhr used for fetching which may be usefull to
+      add an error callback.
+    </p>
+
     <h2 id="Router">Backbone.Router</h2>
 
     <p>
@@ -2309,9 +2464,9 @@ app.navigate("help/troubleshooting", {trigger: true, replace: true});
     <p id="Router-execute">
       <b class="header">execute</b><code>router.execute(callback, args)</code>
       <br />
-      This method is called internally within the router, whenever a route 
-      matches and its corresponding <b>callback</b> is about to be executed. 
-      Override it to perform custom parsing or wrapping of your routes, for 
+      This method is called internally within the router, whenever a route
+      matches and its corresponding <b>callback</b> is about to be executed.
+      Override it to perform custom parsing or wrapping of your routes, for
       example, to parse query strings before handing them to your route
       callback, like so:
     </p>
@@ -2387,7 +2542,7 @@ var Router = Backbone.Router.extend({
 
     <p>
       Because hash-based history in Internet Explorer relies on an
-      <tt>&lt;iframe&gt;</tt>, be sure to only call <tt>start()</tt> after the DOM
+      <tt>&lt;iframe&gt;</tt>, be sure to call <tt>start()</tt> only after the DOM
       is ready.
     </p>
 
@@ -2455,16 +2610,14 @@ $(function(){
     </ul>
 
     <p>
-      As an example, a Rails handler responding to an <tt>"update"</tt> call from
-      <tt>Backbone</tt> might look like this: <i>(In real code, never use
-      </i><tt>update_attributes</tt><i> blindly, and always whitelist the attributes
-      you allow to be changed.)</i>
+      As an example, a Rails 4 handler responding to an <tt>"update"</tt> call from
+      <tt>Backbone</tt> might look like this:
     </p>
 
 <pre>
 def update
   account = Account.find params[:id]
-  account.update_attributes params
+  account.update_attributes params.require(:account).permit(:name, :otherparam)
   render :json => account
 end
 </pre>
@@ -2963,6 +3116,16 @@ var Backbone.$ = require('jquery');
     <p id="FAQ-nested">
       <b class="header">Nested Models &amp; Collections</b>
       <br />
+      This fork allows native nested models and collections using the
+      <a href="#Model-schema">schema</a> property.
+      <br />
+      You can pass a deep json object to 'set' and each nested object is recursively
+      passed it's subset of the json object. In the end, model.get('submodel') returns
+      a submodel instance from the constructor you defined in the schema.
+      <br /><br />
+      Although this concept works well for most cases, you may still want to do
+      nested models the old way. Here's what backbone says about nested moodels:
+      <br /><br />
       It's common to nest collections inside of models with Backbone. For example,
       consider a <tt>Mailbox</tt> model that contains many <tt>Message</tt> models.
       One nice pattern for handling this is have a <tt>this.messages</tt> collection
@@ -3306,12 +3469,12 @@ ActiveRecord::Base.include_root_in_json = false
     <h2 id="examples-earth">Earth</h2>
 
     <p>
-      <a href="http://earth.nullschool.net">Earth.nullschool.net</a> displays real-time weather 
-      conditions on an interactive animated globe, and Backbone provides the 
-      foundation upon which all of the site's components are built. Despite the 
-      presence of several other javascript libraries, Backbone's non-opinionated 
-      design made it effortless to mix-in the <a href="#Events">Events</a> functionality used for 
-      distributing state changes throughout the page. When the decision was made 
+      <a href="http://earth.nullschool.net">Earth.nullschool.net</a> displays real-time weather
+      conditions on an interactive animated globe, and Backbone provides the
+      foundation upon which all of the site's components are built. Despite the
+      presence of several other javascript libraries, Backbone's non-opinionated
+      design made it effortless to mix-in the <a href="#Events">Events</a> functionality used for
+      distributing state changes throughout the page. When the decision was made
       to switch to Backbone, large blocks of custom logic simply disappeared.
     </p>
 
@@ -3324,25 +3487,24 @@ ActiveRecord::Base.include_root_in_json = false
     <h2 id="examples-vox">Vox</h2>
 
     <p>
-      Vox Media, the publisher of 
-      <a href="http://www.sbnation.com/">SB Nation</a>, 
-      <a href="http://www.theverge.com/">The Verge</a>, 
-      <a href="http://www.polygon.com/">Polygon</a>, 
-      <a href="http://www.eater.com/">Eater</a>, 
-      <a href="http://www.racked.com/">Racked</a>, 
-      <a href="http://www.curbed.com/">Curbed</a>, and 
-      <a href="http://www.vox.com/">Vox.com</a>, uses Backbone throughout 
-      <a href="http://techcrunch.com/2012/05/07/a-closer-look-at-chorus-the-next-generation-publishing-platform-that-runs-vox-media/">Chorus</a>, 
-      its home-grown publishing platform. Backbone powers the 
-      <a href="http://product.voxmedia.com/post/25113965826/introducing-syllabus-vox-medias-s3-powered-liveblog">liveblogging platform</a> 
-      and <a href="http://product.voxmedia.com/2013/11/11/5426878/using-backbone-js-for-sanity-and-stability">commenting system</a> 
-      used across all Vox Media properties; Coverage, an internal editorial coordination tool; 
-      <a href="http://www.sbnation.com/college-basketball/2014/4/7/5592112/kentucky-vs-uconn-2014-ncaa-tournament-championship-live-chat">SB Nation Live</a>, 
-      a live event coverage and chat tool; and 
-      <a href="http://www.vox.com/cards/ukraine-everything-you-need-to-know/what-is-the-ukraine-crisis">Vox Cards</a>, 
+      Vox Media, the publisher of
+      <a href="http://www.sbnation.com/">SB Nation</a>,
+      <a href="http://www.theverge.com/">The Verge</a>,
+      <a href="http://www.polygon.com/">Polygon</a>,
+      <a href="http://www.eater.com/">Eater</a>,
+      <a href="http://www.racked.com/">Racked</a>,
+      <a href="http://www.curbed.com/">Curbed</a>, and
+      <a href="http://www.vox.com/">Vox.com</a>, uses Backbone throughout
+      <a href="http://techcrunch.com/2012/05/07/a-closer-look-at-chorus-the-next-generation-publishing-platform-that-runs-vox-media/">Chorus</a>,
+      its home-grown publishing platform. Backbone powers the
+      <a href="http://product.voxmedia.com/post/25113965826/introducing-syllabus-vox-medias-s3-powered-liveblog">liveblogging platform</a>
+      and <a href="http://product.voxmedia.com/2013/11/11/5426878/using-backbone-js-for-sanity-and-stability">commenting system</a>
+      used across all Vox Media properties; Coverage, an internal editorial coordination tool;
+      <a href="http://www.sbnation.com/college-basketball/2014/4/7/5592112/kentucky-vs-uconn-2014-ncaa-tournament-championship-live-chat">SB Nation Live</a>,
+      a live event coverage and chat tool; and
+      <a href="http://www.vox.com/cards/ukraine-everything-you-need-to-know/what-is-the-ukraine-crisis">Vox Cards</a>,
       Vox.com's highlighter-and-index-card inspired app for providing context about the news.
     </p>
-    
     <div style="text-align: center;">
       <a href="http://vox.com">
         <img width="550" height="402" data-original="docs/images/vox.jpg" alt="Vox" class="example_retina" />
@@ -3422,11 +3584,11 @@ ActiveRecord::Base.include_root_in_json = false
     <h2 id="examples-enigma">Enigma</h2>
 
     <p>
-      <a href="http://enigma.io">Enigma</a> is a portal amassing the largest 
-      collection of public data produced by governments, universities, companies, 
-      and organizations. Enigma uses Backbone Models and Collections to represent 
-      complex data structures; and Backbone's Router gives Enigma users unique URLs for 
-      application states, allowing them to navigate quickly through the site while 
+      <a href="http://enigma.io">Enigma</a> is a portal amassing the largest
+      collection of public data produced by governments, universities, companies,
+      and organizations. Enigma uses Backbone Models and Collections to represent
+      complex data structures; and Backbone's Router gives Enigma users unique URLs for
+      application states, allowing them to navigate quickly through the site while
       maintaining the ability to bookmark pages and navigate forward and backward
       through their session.
     </p>
@@ -3966,7 +4128,7 @@ ActiveRecord::Base.include_root_in_json = false
       <a href="http://www.newschallenge.org/">Knight Foundation News Challenge</a>
       winners, <a href="http://mapbox.com/">MapBox</a>, created an open-source
       map design studio with Backbone.js:
-      <a href="http://mapbox.github.com/tilemill/">TileMill</a>.
+      <a href="https://www.mapbox.com/tilemill/">TileMill</a>.
       TileMill lets you manage map layers based on shapefiles and rasters, and
       edit their appearance directly in the browser with the
       <a href="https://github.com/mapbox/carto">Carto styling language</a>.
@@ -3975,7 +4137,7 @@ ActiveRecord::Base.include_root_in_json = false
     </p>
 
     <div style="text-align: center;">
-      <a href="http://mapbox.github.com/tilemill/">
+      <a href="https://www.mapbox.com/tilemill/">
         <img width="544" height="375" data-original="docs/images/tilemill.jpg" alt="TileMill" class="example_retina" />
       </a>
     </div>
@@ -4040,13 +4202,13 @@ ActiveRecord::Base.include_root_in_json = false
 
     <h2 id="changelog">Change Log</h2>
 
-    <b class="header">1.1.2</b> &mdash; <small><i>Feb. 20, 2014</i></small> 
-    &mdash; <a href="https://github.com/jashkenas/backbone/compare/1.1.1...1.1.2">Diff</a> 
-    &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/1.1.2/index.html">Docs</a>
+    <b class="header">1.1.2</b> &mdash; <small><i>Feb. 20, 2014</i></small>
+    &mdash; <a href="https://github.com/jashkenas/backbone/compare/1.1.1...1.1.2">Diff</a>
+    &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/1.1.2/index.html">Docs</a>
     <br />
     <ul style="margin-top: 5px;">
       <li>
-        Backbone no longer tries to require jQuery in Node/CommonJS environments, 
+        Backbone no longer tries to require jQuery in Node/CommonJS environments,
         for better compatibility with folks using Browserify.
         If you'd like to have Backbone use jQuery from Node, assign it like so:
         <tt>Backbone.$ = require('jquery');</tt>
@@ -4056,10 +4218,10 @@ ActiveRecord::Base.include_root_in_json = false
       </li>
     </ul>
 
-    <b class="header">1.1.1</b> &mdash; <small><i>Feb. 13, 2014</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/1.1.0...1.1.1">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/1.1.1/index.html">Docs</a><br />
+    <b class="header">1.1.1</b> &mdash; <small><i>Feb. 13, 2014</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/1.1.0...1.1.1">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/1.1.1/index.html">Docs</a><br />
     <ul style="margin-top: 5px;">
       <li>
-        Backbone now registers itself for AMD (Require.js), Bower and Component, 
+        Backbone now registers itself for AMD (Require.js), Bower and Component,
         as well as being a CommonJS module and a regular (Java)Script. Whew.
       </li>
       <li>
@@ -4080,7 +4242,7 @@ ActiveRecord::Base.include_root_in_json = false
       </li>
     </ul>
 
-    <b class="header">1.1.0</b> &mdash; <small><i>Oct. 10, 2013</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/1.0.0...1.1.0">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/1.1.0/index.html">Docs</a><br />
+    <b class="header">1.1.0</b> &mdash; <small><i>Oct. 10, 2013</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/1.0.0...1.1.0">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/1.1.0/index.html">Docs</a><br />
     <ul style="margin-top: 5px;">
       <li>
         Made the return values of Collection's <tt>set</tt>, <tt>add</tt>,
@@ -4112,7 +4274,7 @@ ActiveRecord::Base.include_root_in_json = false
       </li>
     </ul>
 
-    <b class="header">1.0.0</b> &mdash; <small><i>March 20, 2013</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.9.10...1.0.0">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/1.0.0/index.html">Docs</a><br />
+    <b class="header">1.0.0</b> &mdash; <small><i>March 20, 2013</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.9.10...1.0.0">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/1.0.0/index.html">Docs</a><br />
     <ul style="margin-top: 5px;">
       <li>
         Renamed Collection's "update" to <a href="#Collection-set">set</a>, for
@@ -4146,7 +4308,7 @@ ActiveRecord::Base.include_root_in_json = false
       </li>
     </ul>
 
-    <b class="header">0.9.10</b> &mdash; <small><i>Jan. 15, 2013</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.9.9...0.9.10">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/0.9.10/index.html">Docs</a><br />
+    <b class="header">0.9.10</b> &mdash; <small><i>Jan. 15, 2013</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.9.9...0.9.10">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/0.9.10/index.html">Docs</a><br />
     <ul style="margin-top: 5px;">
       <li>
         A <tt>"route"</tt> event is triggered on the router in addition
@@ -4168,7 +4330,7 @@ ActiveRecord::Base.include_root_in_json = false
       </li>
       <li>
         The <tt>Model#change</tt> method has been removed, as delayed attribute
-        changes as no longer available.
+        changes are no longer available.
       </li>
       <li>
         Bug fix on <tt>change</tt> where attribute comparison uses <tt>!==</tt>
@@ -4187,7 +4349,7 @@ ActiveRecord::Base.include_root_in_json = false
       </li>
     </ul>
 
-    <b class="header">0.9.9</b> &mdash; <small><i>Dec. 13, 2012</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.9.2...0.9.9">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/0.9.9/index.html">Docs</a><br />
+    <b class="header">0.9.9</b> &mdash; <small><i>Dec. 13, 2012</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.9.2...0.9.9">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/0.9.9/index.html">Docs</a><br />
     <ul style="margin-top: 5px;">
       <li>
         Added <a href="#Events-listenTo">listenTo</a>
@@ -4309,7 +4471,7 @@ ActiveRecord::Base.include_root_in_json = false
       </li>
     </ul>
 
-    <b class="header">0.9.2</b> &mdash; <small><i>March 21, 2012</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.9.1...0.9.2">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/0.9.2/index.html">Docs</a><br />
+    <b class="header">0.9.2</b> &mdash; <small><i>March 21, 2012</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.9.1...0.9.2">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/0.9.2/index.html">Docs</a><br />
     <ul style="margin-top: 5px;">
       <li>
         Instead of throwing an error when adding duplicate models to a collection,
@@ -4351,7 +4513,7 @@ ActiveRecord::Base.include_root_in_json = false
       </li>
     </ul>
 
-    <b class="header">0.9.1</b> &mdash; <small><i>Feb. 2, 2012</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.9.0...0.9.1">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/0.9.1/index.html">Docs</a><br />
+    <b class="header">0.9.1</b> &mdash; <small><i>Feb. 2, 2012</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.9.0...0.9.1">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/0.9.1/index.html">Docs</a><br />
     <ul style="margin-top: 5px;">
       <li>
         Reverted to 0.5.3-esque behavior for validating models. Silent changes
@@ -4369,7 +4531,7 @@ ActiveRecord::Base.include_root_in_json = false
       </li>
     </ul>
 
-    <b class="header">0.9.0</b> &mdash; <small><i>Jan. 30, 2012</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.5.3...0.9.0">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/0.9.0/index.html">Docs</a><br />
+    <b class="header">0.9.0</b> &mdash; <small><i>Jan. 30, 2012</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.5.3...0.9.0">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/0.9.0/index.html">Docs</a><br />
     <ul style="margin-top: 5px;">
       <li>
         Creating and destroying models with <tt>create</tt> and <tt>destroy</tt>
@@ -4467,7 +4629,7 @@ ActiveRecord::Base.include_root_in_json = false
     </ul>
 
     <p>
-      <b class="header">0.5.3</b> &mdash; <small><i>August 9, 2011</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.5.2...0.5.3">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/0.5.3/index.html">Docs</a><br />
+      <b class="header">0.5.3</b> &mdash; <small><i>August 9, 2011</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.5.2...0.5.3">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/0.5.3/index.html">Docs</a><br />
       A View's <tt>events</tt> property may now be defined as a function, as well
       as an object literal, making it easier to programmatically define and inherit
       events. <tt>groupBy</tt> is now proxied from Underscore as a method on Collections.
@@ -4477,7 +4639,7 @@ ActiveRecord::Base.include_root_in_json = false
     </p>
 
     <p>
-      <b class="header">0.5.2</b> &mdash; <small><i>July 26, 2011</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.5.1...0.5.2">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/0.5.2/index.html">Docs</a><br />
+      <b class="header">0.5.2</b> &mdash; <small><i>July 26, 2011</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.5.1...0.5.2">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/0.5.2/index.html">Docs</a><br />
       The <tt>bind</tt> function, can now take an optional third argument, to specify
       the <tt>this</tt> of the callback function.
       Multiple models with the same <tt>id</tt> are now allowed in a collection.
@@ -4488,7 +4650,7 @@ ActiveRecord::Base.include_root_in_json = false
     </p>
 
     <p>
-      <b class="header">0.5.1</b> &mdash; <small><i>July 5, 2011</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.5.0...0.5.1">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/0.5.1/index.html">Docs</a><br />
+      <b class="header">0.5.1</b> &mdash; <small><i>July 5, 2011</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.5.0...0.5.1">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/0.5.1/index.html">Docs</a><br />
       Cleanups from the 0.5.0 release, to wit: improved transparent upgrades from
       hash-based URLs to pushState, and vice-versa. Fixed inconsistency with
       non-modified attributes being passed to <tt>Model#initialize</tt>. Reverted
@@ -4497,7 +4659,7 @@ ActiveRecord::Base.include_root_in_json = false
     </p>
 
     <p>
-      <b class="header">0.5.0</b> &mdash; <small><i>July 1, 2011</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.3.3...0.5.0">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/0.5.0/index.html">Docs</a><br />
+      <b class="header">0.5.0</b> &mdash; <small><i>July 1, 2011</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.3.3...0.5.0">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/0.5.0/index.html">Docs</a><br />
       A large number of tiny tweaks and micro bugfixes, best viewed by looking
       at <a href="https://github.com/jashkenas/backbone/compare/0.3.3...0.5.0">the commit diff</a>.
       HTML5 <tt>pushState</tt> support, enabled by opting-in with:
@@ -4521,7 +4683,7 @@ ActiveRecord::Base.include_root_in_json = false
     </p>
 
     <p>
-      <b class="header">0.3.3</b> &mdash; <small><i>Dec 1, 2010</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.3.2...0.3.3">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/0.3.3/index.html">Docs</a><br />
+      <b class="header">0.3.3</b> &mdash; <small><i>Dec 1, 2010</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.3.2...0.3.3">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/0.3.3/index.html">Docs</a><br />
       Backbone.js now supports <a href="http://zeptojs.com">Zepto</a>, alongside
       jQuery, as a framework for DOM manipulation and Ajax support.
       Implemented <a href="#Model-escape">Model#escape</a>, to efficiently handle
@@ -4532,7 +4694,7 @@ ActiveRecord::Base.include_root_in_json = false
     </p>
 
     <p>
-      <b class="header">0.3.2</b> &mdash; <small><i>Nov 23, 2010</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.3.1...0.3.2">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/0.3.2/index.html">Docs</a><br />
+      <b class="header">0.3.2</b> &mdash; <small><i>Nov 23, 2010</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.3.1...0.3.2">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/0.3.2/index.html">Docs</a><br />
       Bugfix for IE7 + iframe-based "hashchange" events. <tt>sync</tt> may now be
       overridden on a per-model, or per-collection basis. Fixed recursion error
       when calling <tt>save</tt> with no changed attributes, within a
@@ -4540,7 +4702,7 @@ ActiveRecord::Base.include_root_in_json = false
     </p>
 
     <p>
-      <b class="header">0.3.1</b> &mdash; <small><i>Nov 15, 2010</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.3.0...0.3.1">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/0.3.1/index.html">Docs</a><br />
+      <b class="header">0.3.1</b> &mdash; <small><i>Nov 15, 2010</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.3.0...0.3.1">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/0.3.1/index.html">Docs</a><br />
       All <tt>"add"</tt> and <tt>"remove"</tt> events are now sent through the
       model, so that views can listen for them without having to know about the
       collection. Added a <tt>remove</tt> method to <a href="#View">Backbone.View</a>.
@@ -4549,7 +4711,7 @@ ActiveRecord::Base.include_root_in_json = false
     </p>
 
     <p>
-      <b class="header">0.3.0</b> &mdash; <small><i>Nov 9, 2010</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.2.0...0.3.0">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/0.3.0/index.html">Docs</a><br />
+      <b class="header">0.3.0</b> &mdash; <small><i>Nov 9, 2010</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.2.0...0.3.0">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/0.3.0/index.html">Docs</a><br />
       Backbone now has <a href="#Controller">Controllers</a> and
       <a href="#History">History</a>, for doing client-side routing based on
       URL fragments.
@@ -4563,7 +4725,7 @@ ActiveRecord::Base.include_root_in_json = false
     </p>
 
     <p>
-      <b class="header">0.2.0</b> &mdash; <small><i>Oct 25, 2010</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.1.2...0.2.0">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/0.2.0/index.html">Docs</a><br />
+      <b class="header">0.2.0</b> &mdash; <small><i>Oct 25, 2010</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.1.2...0.2.0">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/0.2.0/index.html">Docs</a><br />
       Instead of requiring server responses to be namespaced under a <tt>model</tt>
       key, now you can define your own <a href="#Model-parse">parse</a> method
       to convert responses into attributes for Models and Collections.
@@ -4575,7 +4737,7 @@ ActiveRecord::Base.include_root_in_json = false
     </p>
 
     <p>
-      <b class="header">0.1.2</b> &mdash; <small><i>Oct 19, 2010</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.1.1...0.1.2">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/0.1.2/index.html">Docs</a><br />
+      <b class="header">0.1.2</b> &mdash; <small><i>Oct 19, 2010</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.1.1...0.1.2">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/0.1.2/index.html">Docs</a><br />
       Added a <a href="#Model-fetch">Model#fetch</a> method for refreshing the
       attributes of single model from the server.
       An <tt>error</tt> callback may now be passed to <tt>set</tt> and <tt>save</tt>
@@ -4589,13 +4751,13 @@ ActiveRecord::Base.include_root_in_json = false
     </p>
 
     <p>
-      <b class="header">0.1.1</b> &mdash; <small><i>Oct 14, 2010</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.1.0...0.1.1">Diff</a> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/0.1.1/index.html">Docs</a><br />
+      <b class="header">0.1.1</b> &mdash; <small><i>Oct 14, 2010</i></small> &mdash; <a href="https://github.com/jashkenas/backbone/compare/0.1.0...0.1.1">Diff</a> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/0.1.1/index.html">Docs</a><br />
       Added a convention for <tt>initialize</tt> functions to be called
       upon instance construction, if defined. Documentation tweaks.
     </p>
 
     <p>
-      <b class="header">0.1.0</b> &mdash; <small><i>Oct 13, 2010</i></small> &mdash; <a href="http://htmlpreview.github.com/?https://raw.github.com/jashkenas/backbone/0.1.0/index.html">Docs</a><br />
+      <b class="header">0.1.0</b> &mdash; <small><i>Oct 13, 2010</i></small> &mdash; <a href="https://cdn.rawgit.com/jashkenas/backbone/0.1.0/index.html">Docs</a><br />
       Initial Backbone release.
     </p>
 

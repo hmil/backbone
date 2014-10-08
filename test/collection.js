@@ -42,7 +42,7 @@
       {id: 1},
       {id: 2}
     ], {comparator: 'id'});
-    deepEqual(collection.pluck('id'), [1, 2, 3]);
+    deepEqual(collection.pluck('id'), ['1', '2', '3']);
   });
 
   test("new and parse", 3, function() {
@@ -60,6 +60,20 @@
     strictEqual(collection.last().get('a'), 4);
   });
 
+  test("clone preserves model and comparator", 3, function() {
+    var Model = Backbone.Model.extend();
+    var comparator = function(model){ return model.id; };
+
+    var collection = new Backbone.Collection([{id: 1}], {
+      model: Model,
+      comparator: comparator
+    }).clone();
+    collection.add({id: 2});
+    ok(collection.at(0) instanceof Model);
+    ok(collection.at(1) instanceof Model);
+    strictEqual(collection.comparator, comparator);
+  });
+
   test("get", 6, function() {
     equal(col.get(0), d);
     equal(col.get(d.clone()), d);
@@ -70,10 +84,9 @@
   });
 
   test("get with non-default ids", 5, function() {
-    var col = new Backbone.Collection();
     var MongoModel = Backbone.Model.extend({idAttribute: '_id'});
     var model = new MongoModel({_id: 100});
-    col.add(model);
+    var col = new Backbone.Collection([model], {model: MongoModel});
     equal(col.get(100), model);
     equal(col.get(model.cid), model);
     equal(col.get(model), model);
@@ -104,8 +117,9 @@
     equal(col.get(101).get('name'), 'dalmatians');
   });
 
-  test("at", 1, function() {
+  test("at", 2, function() {
     equal(col.at(2), c);
+    equal(col.at(-2), c);
   });
 
   test("pluck", 1, function() {
@@ -271,7 +285,13 @@
   });
 
   test("comparator that depends on `this`", 2, function() {
-    var col = new Backbone.Collection;
+    var Model = Backbone.Model.extend({
+      idType: Backbone.Number
+    });
+    var Collection = Backbone.Collection.extend({
+      model: Model
+    });
+    var col = new Collection;
     col.negative = function(num) {
       return -num;
     };
@@ -530,7 +550,7 @@
   });
 
   test("toJSON", 1, function() {
-    equal(JSON.stringify(col), '[{"id":3,"label":"a"},{"id":2,"label":"b"},{"id":1,"label":"c"},{"id":0,"label":"d"}]');
+    equal(JSON.stringify(col), '[{"id":"3","label":"a"},{"id":"2","label":"b"},{"id":"1","label":"c"},{"id":"0","label":"d"}]');
   });
 
   test("where and findWhere", 8, function() {
@@ -649,13 +669,14 @@
     ok(attrs === models[0]);
   });
 
-  test("#714: access `model.collection` in a brand new model.", 2, function() {
+  test("#714: access `model.collection` in a brand new model.", 1, function() {
     var collection = new Backbone.Collection;
     collection.url = '/test';
     var Model = Backbone.Model.extend({
       set: function(attrs) {
-        equal(attrs.prop, 'value');
-        equal(this.collection, collection);
+        if(attrs.prop === 'value') {
+          equal(this.collection, collection);
+        }
         return this;
       }
     });
@@ -674,6 +695,7 @@
 
   test("#861, adding models to a collection which do not pass validation, with validate:true", function() {
       var Model = Backbone.Model.extend({
+        idType: Backbone.Number,
         validate: function(attrs) {
           if (attrs.id == 3) return "id can't be 3";
         }
@@ -761,7 +783,7 @@
       }
     };
     col.sync = m.sync = function( method, collection, options ){
-      options.success(collection, [], options);
+      options.success({});
     };
     col.fetch(opts);
     col.create(m, opts);
@@ -801,12 +823,12 @@
 
   test("#1448 - add sorts collection after merge.", 1, function() {
     var collection = new Backbone.Collection([
-      {id: 1, x: 1},
-      {id: 2, x: 2}
+      {id: '1', x: 1},
+      {id: '2', x: 2}
     ]);
     collection.comparator = function(model){ return model.get('x'); };
     collection.add({id: 1, x: 3}, {merge: true});
-    deepEqual(collection.pluck('id'), [2, 1]);
+    deepEqual(collection.pluck('id'), ['2', '1']);
   });
 
   test("#1655 - groupBy can be used with a string argument.", 3, function() {
@@ -1027,13 +1049,13 @@
       }
     });
     var Collection = Backbone.Collection.extend({model: Model});
-    var data = [{id: 1, child: {id: 2}}];
+    var data = [{id: '1', child: {id: '2'}}];
     var collection = new Collection(data);
-    equal(collection.first().id, 1);
+    equal(collection.first().id, '1');
     collection.set(data);
-    equal(collection.first().id, 1);
-    collection.set([{id: 2, child: {id: 2}}].concat(data));
-    deepEqual(collection.pluck('id'), [2, 1]);
+    equal(collection.first().id, '1');
+    collection.set([{id: '2', child: {id: '2'}}].concat(data));
+    deepEqual(collection.pluck('id'), ['2', '1']);
   });
 
   test("`set` and model level `parse`", function() {
@@ -1175,15 +1197,15 @@
   });
 
   test("Attach options to collection.", 2, function() {
-    var model = new Backbone.Model;
+    var Model = Backbone.Model;
     var comparator = function(){};
 
     var collection = new Backbone.Collection([], {
-      model: model,
+      model: Model,
       comparator: comparator
     });
 
-    ok(collection.model === model);
+    ok(collection.model === Model);
     ok(collection.comparator === comparator);
   });
 
@@ -1333,6 +1355,119 @@
     c.set([{id: 1}, {id: 1}]);
     equal(c.length, 1);
     equal(c.models.length, 1);
+  });
+
+  test('#3020: #set with {add: false} should not throw.', 2, function() {
+    var collection = new Backbone.Collection;
+    collection.set([{id: 1}], {add: false});
+    strictEqual(collection.length, 0);
+    strictEqual(collection.models.length, 0);
+  });
+
+  test("create with wait, model instance, #3028", 1, function() {
+    var collection = new Backbone.Collection();
+    var model = new Backbone.Model({id: 1});
+    model.sync = function(){
+      equal(this.collection, collection);
+    };
+    collection.create(model, {wait: true});
+  });
+
+  test("modelId", function() {
+    var Stooge = Backbone.Model.extend();
+    var StoogeCollection = Backbone.Collection.extend({model: Stooge});
+
+    // Default to using `Collection::model::idAttribute`.
+    equal(StoogeCollection.prototype.modelId({id: 1}), 1);
+    Stooge.prototype.idAttribute = '_id';
+    equal(StoogeCollection.prototype.modelId({_id: 1}), 1);
+  });
+
+  test('Polymorphic models work with "simple" constructors', function () {
+    var A = Backbone.Model.extend();
+    var B = Backbone.Model.extend();
+    var C = Backbone.Collection.extend({
+      model: function (attrs) {
+        return attrs.type === 'a' ? new A(attrs) : new B(attrs);
+      }
+    });
+    var collection = new C([{id: 1, type: 'a'}, {id: 2, type: 'b'}]);
+    equal(collection.length, 2);
+    ok(collection.at(0) instanceof A);
+    equal(collection.at(0).id, 1);
+    ok(collection.at(1) instanceof B);
+    equal(collection.at(1).id, 2);
+  });
+
+  test('Polymorphic models work with "advanced" constructors', function () {
+    var A = Backbone.Model.extend({idAttribute: '_id'});
+    var B = Backbone.Model.extend({idAttribute: '_id'});
+    var C = Backbone.Collection.extend({
+      model: Backbone.Model.extend({
+        constructor: function (attrs) {
+          return attrs.type === 'a' ? new A(attrs) : new B(attrs);
+        },
+
+        idAttribute: '_id'
+      })
+    });
+    var collection = new C([{_id: 1, type: 'a'}, {_id: 2, type: 'b'}]);
+    equal(collection.length, 2);
+    ok(collection.at(0) instanceof A);
+    equal(collection.at(0), collection.get(1));
+    ok(collection.at(1) instanceof B);
+    equal(collection.at(1), collection.get(2));
+
+    C = Backbone.Collection.extend({
+      model: function (attrs) {
+        return attrs.type === 'a' ? new A(attrs) : new B(attrs);
+      },
+
+      modelId: function (attrs) {
+        return attrs.type + '-' + attrs.id;
+      }
+    });
+    collection = new C([{id: 1, type: 'a'}, {id: 1, type: 'b'}]);
+    equal(collection.length, 2);
+    ok(collection.at(0) instanceof A);
+    equal(collection.at(0), collection.get('a-1'));
+    ok(collection.at(1) instanceof B);
+    equal(collection.at(1), collection.get('b-1'));
+  });
+
+  test("#3039: adding at index fires with correct at", 3, function() {
+    var col = new Backbone.Collection([{at: 0}, {at: 4}]);
+    col.on('add', function(model, col, options) {
+        equal(model.get('at'), options.index);
+    });
+    col.add([{at: 1}, {at: 2}, {at: 3}], {at: 1});
+  });
+
+  test("#3039: index is not sent when at is not specified", 2, function() {
+    var col = new Backbone.Collection([{at: 0}]);
+    col.on('add', function(model, col, options) {
+        equal(undefined, options.index);
+    });
+    col.add([{at: 1}, {at: 2}]);
+  });
+
+  test("Construct a collection with another collection", 3, function() {
+    var col2 = new Backbone.Collection(col);
+    equal(col2.size(), 4);
+    equal(col2.get(0).get('label'), 'd');
+    equal(col2.get(3).get('label'), 'a');
+  });
+
+
+  test("model syntactic sugar", 2, function(){
+    var Col = Backbone.Collection.extend({
+      model: {
+        title: String
+      }
+    });
+    var col = new Col([{title: 'foo'}]);
+    ok(col.first() instanceof Backbone.Model);
+    equal(col.first().get('title'), 'foo');
   });
 
 })();
