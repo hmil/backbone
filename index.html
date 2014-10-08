@@ -4,7 +4,7 @@
   <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
   <meta http-equiv="X-UA-Compatible" content="chrome=1" />
   <meta name="viewport" content="width=device-width">
-  <link rel="canonical" href="http://backbonejs.org" />
+  <link rel="canonical" href="http://hmil.github.io/backbone" />
   <title>Backbone.js</title>
   <style>
     body {
@@ -288,7 +288,7 @@
       Backbone.js <span class="version">(1.1.2)</span>
     </a>
     <ul class="toc_section">
-      <li>&raquo; <a href="http://github.com/jashkenas/backbone">GitHub Repository</a></li>
+      <li>&raquo; <a href="http://github.com/hmil/backbone">GitHub Repository</a></li>
       <li>&raquo; <a href="docs/backbone.html">Annotated Source</a></li>
     </ul>
 
@@ -320,6 +320,9 @@
     <ul class="toc_section">
       <li>– <a href="#Model-extend">extend</a></li>
       <li>– <a href="#Model-constructor">constructor / initialize</a></li>
+      <li>– <a href="#Model-schema">schema</a></li>
+      <li>– <a href="#Model-virtual">virtual</a></li>
+      <li>– <a href="#Model-validators">validators</a></li>
       <li>– <a href="#Model-get">get</a></li>
       <li>– <a href="#Model-set">set</a></li>
       <li>– <a href="#Model-escape">escape</a></li>
@@ -385,6 +388,7 @@
       <li>– <a href="#Collection-clone">clone</a></li>
       <li>– <a href="#Collection-fetch">fetch</a></li>
       <li>– <a href="#Collection-create">create</a></li>
+      <li>– <a href="#Collection-Reference">Reference</a></li>
     </ul>
 
     <a class="toc_title" href="#Router">
@@ -518,6 +522,30 @@
     </p>
 
     <p>
+      <b>Hi there !</b><br />
+      You are currently reading the doc for my backbone fork. 
+      If you are looking for the original backbone doc, 
+      <b><a href="http://backbonejs.org">here's where you want to go</a></b>.
+    </p> 
+
+    <p>
+      This fork introduces the following features :
+    </p>
+
+    <ul>
+      <li><a href="#Model-schema">Nested models and collections</a></li>
+      <li><a href="#Model-virtual">Virtual attributes</a></li>
+      <li><a href="#Model-validators">More opinionated validation</a></li>
+      <li><a href="#Collection-Reference">Cross collection references</a></li>
+    </ul>
+  
+    <p>
+      Of course these features come fully tested and do not break the original 
+      backbone test suite. In practice, you can use only part or none of what's
+      been added, the original backbone behaviour is completely preserved.
+    </p>
+
+    <p>
       Backbone.js gives structure to web applications
       by providing <b>models</b> with key-value binding and custom events,
       <b>collections</b> with a rich API of enumerable functions,
@@ -526,22 +554,26 @@
     </p>
 
     <p>
-      The project is <a href="http://github.com/jashkenas/backbone/">hosted on GitHub</a>,
+      The project is <a href="http://github.com/hmil/backbone/">hosted on GitHub</a>,
       and the <a href="docs/backbone.html">annotated source code</a> is available,
       as well as an online <a href="test/">test suite</a>,
       an <a href="examples/todos/index.html">example application</a>,
       a <a href="https://github.com/jashkenas/backbone/wiki/Tutorials%2C-blog-posts-and-example-sites">list of tutorials</a>
       and a <a href="#examples">long list of real-world projects</a> that use Backbone.
-      Backbone is available for use under the <a href="http://github.com/jashkenas/backbone/blob/master/LICENSE">MIT software license</a>.
+      Backbone is available for use under the <a href="http://github.com/hmil/backbone/blob/master/LICENSE">MIT software license</a>.
     </p>
 
     <p>
+      <b>For general backbone stuff</b>:<br />
       You can report bugs and discuss features on the
       <a href="http://github.com/jashkenas/backbone/issues">GitHub issues page</a>,
       on Freenode IRC in the <tt>#documentcloud</tt> channel, post questions to the
       <a href="https://groups.google.com/forum/#!forum/backbonejs">Google Group</a>,
       add pages to the <a href="https://github.com/jashkenas/backbone/wiki">wiki</a>
       or send tweets to <a href="http://twitter.com/documentcloud">@documentcloud</a>.
+      <br />
+      <b>For this specific backbone fork</b>, use the
+      <a href="http://github.com/hmil/backbone/issues">dedicated issue tracker</a>.
     </p>
 
     <p>
@@ -569,11 +601,11 @@
         </td>
       </tr>
       <tr>
-        <td><a class="punch" href="https://raw.github.com/jashkenas/backbone/master/backbone.js">Edge Version (master)</a></td>
+        <td><a class="punch" href="https://raw.github.com/hmil/backbone/master/backbone.js">Edge Version (master)</a></td>
         <td>
           <i>Unreleased, use at your own risk</i>
-          <a class="travis-badge" href="https://travis-ci.org/jashkenas/backbone">
-            <img src="https://travis-ci.org/jashkenas/backbone.png" />
+          <a class="travis-badge" href="https://travis-ci.org/hmil/backbone">
+            <img src="https://travis-ci.org/hmil/backbone.png" />
           </a>
         </td>
       </tr>
@@ -1024,11 +1056,94 @@ var Library = Backbone.Model.extend({
       <a href="#Model-set">set</a> on the model.
     </p>
 
+
+    <p id="Model-schema">
+      <b class="header">schema</b>
+      <br />
+      This fork encourages you to be explicit about what your models are supposed
+      to contain. You should define a `schema` property which represents what your
+      model contains. Unless <tt>Backbone.compatMode</tt> is set to true,
+      a warning will be printed in the console if an attribute is added
+      to the model but the schema doesnt defines it. This helps spotting typos in your code.
+      <br />
+      Each attribute is defined as a <tt>key: constructor</tt> pair. While in practice you 
+      can use any constructor, you should use <tt>Backbone.String</tt>, <tt>Backbone.Number</tt>,
+      <tt>Backbone.Boolean</tt> for basic types and Collections or Model constructor for 
+      more advanced stuff.
+    </p>
+<pre>
+var Character = Backbone.model.extend({
+  schema: {
+    name: Backbone.String,
+    items: [Item],
+    combatSkills: {
+      damage: Backbone.Number,
+      armor: Backbone.Number
+    }
+  }
+});
+</pre>
+    <p>
+      You can also use the array notation [model] when you want a collection, 
+      and nested attribute hash when you want a model.
+      This is syntaxic sugar that expands to standard Collections and Models.
+    </p>
+
+    <p id="Model-virtual">
+      <b class="header">virtual</b>
+      <br />
+      Some model properties can be computed using model attributes and you don't want
+      to store them as attributes although you want to access them with .get() so that
+      you make no special case when using these properties.
+      <br />
+      Define such attributes as methods of the virtual property.
+      <br />
+      In cas get() is called with extra parameters, these are passed to the virtual
+      attribute function.
+    </p>
+<pre>
+var Character = Backbone.model.extend({
+  virtual: {
+    fullName: function(){
+      return this.get('firstname')+this.get('lastname');
+    }
+  }
+});
+</pre>
+  
+    <p id="Model-validators">
+      <b class="header">validators</b>
+      <br />
+      A default validate implementation is provided. It runs all validators defined
+      in the validators property against their respective attributes and returns a hash
+      of errors indexed by attribute name.
+    </p>
+<pre>
+var MyModel = Backbone.model.extend({
+  validators: {
+    name: Backbone.validators.required,
+    age: function(age) {
+      return (age &lt; 18) ? 'you must be at least 18' : null;
+    }
+  }
+});
+</pre>
+    <p>
+      A validator is a function that takes <tt>attr, attrName, attrs</tt> as arguments
+      and returns a string in case of error.
+      <br />
+      A few built-in validators are available to perform most common validation tasks.
+      Look for <tt>Backbone.validators</tt> in <a href="docs/backbone.html">the annotated source</a>.
+    </p>
+
     <p id="Model-get">
-      <b class="header">get</b><code>model.get(attribute)</code>
+      <b class="header">get</b><code>model.get(attribute[, args...])</code>
       <br />
       Get the current value of an attribute from the model. For example:
       <tt>note.get("title")</tt>
+      <br />
+      If the attribute is virtual, you can pass extra argument which will be passed
+      to it's function.
     </p>
 
     <p id="Model-set">
@@ -2141,6 +2256,40 @@ var othello = nypl.create({
 });
 </pre>
 
+    <p id="Collection-Reference">
+      <b class="header">Reference</b><code>collection.Reference</code>
+      <br />
+      Create a weak reference to a collection using it's Reference constructor.
+      Such reference designates a model that may not yet be present in the collection.
+      In case another model with the same id replaces the current one in the collection,
+      the reference keeps track of the model that's still in the collection.
+      <br />
+      A reference proxies all method from the collection's model prototype. Events
+      are bound to the reference, not the underlying model. All events originating form
+      the model appear as if they came from the reference. Additionnal <tt>change</tt>
+      events are fired when the underlying model is added, removed or swapped in the
+      collection.
+    </p>
+    
+    <p id="Reference-dereference">
+      <b class="header">Dereference operator</b><code>reference.$([cb])</code>
+      <br />
+      Returns the referenced model instance or null if it is not loaded in the collection
+      If cb is not null, it is called iff the referenced model is available.
+      cb is passed the model as first argument and it's return value is returned.
+      <br />
+      cb is useful if you want to conditionnaly execute a statement if the referenced 
+      model is available.
+    </p>
+
+    <p id="Reference-lookup">
+      <b class="header">Lookup operator</b><code>reference.$$(cb, options)</code>
+      <br />
+      Tries to load the referenced model and executes cb on success.
+      Note that it returns the xhr used for fetching which may be usefull to
+      add an error callback.
+    </p>
+
     <h2 id="Router">Backbone.Router</h2>
 
     <p>
@@ -2967,6 +3116,16 @@ var Backbone.$ = require('jquery');
     <p id="FAQ-nested">
       <b class="header">Nested Models &amp; Collections</b>
       <br />
+      This fork allows native nested models and collections using the
+      <a href="#Model-schema">schema</a> property.
+      <br />
+      You can pass a deep json object to 'set' and each nested object is recursively
+      passed it's subset of the json object. In the end, model.get('submodel') returns
+      a submodel instance from the constructor you defined in the schema.
+      <br /><br />
+      Although this concept works well for most cases, you may still want to do
+      nested models the old way. Here's what backbone says about nested moodels:
+      <br /><br />
       It's common to nest collections inside of models with Backbone. For example,
       consider a <tt>Mailbox</tt> model that contains many <tt>Message</tt> models.
       One nice pattern for handling this is have a <tt>this.messages</tt> collection

@@ -4,7 +4,7 @@
 //     (c) 2010-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 //     Backbone may be freely distributed under the MIT license.
 //     For all details and documentation:
-//     http://backbonejs.org
+//     http://hmil.github.io/backbone
 
 (function(root, factory) {
 
@@ -696,12 +696,13 @@
       return this._validate({}, _.extend(options || {}, { validate: true }));
     },
 
+    // Validates every attribute with it's validators
     validate: function(attrs) {
       var that = this;
       function validate(acc, validator, attr, attrName) {
         validator = that._getValidator(validator);
         var err = validator.call(that, attr, attrName, attrs);
-        if (!_.isUndefined(err)) {
+        if (err != null) {
           // add error
           if (_.isUndefined(acc[attrName]))
             acc[attrName] = [];
@@ -849,16 +850,26 @@
     };
   });
 
-  /*
-   *  Built in validators provide most commonly used validation rules
-   */
+  //  Built in validators provide most commonly used validation rules
   Backbone.validators = {
+
+    // Checks that an attribute is defined using `_.isBlank`
     required: function(attr, attrName) {
       if (_.isBlank(attr)) {
         return this.getLabel(attrName) + ' cannot be blank.';
       }
     },
 
+    //
+    //  Check for the length of a string
+    //  pass one or a combination of the following properties in `opts`
+    //  ```js
+    //  {
+    //    max: maxLength,
+    //    min: minLength,
+    //    eq: exactLength
+    //  }
+    //  ```
     length: function(opts) {
       return function(attr, attrName) {
         if (!_.isUndefined(attr)) {

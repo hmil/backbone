@@ -1,7 +1,7 @@
 {
   "name"          : "backbone",
   "description"   : "Give your JS App some Backbone with Models, Views, Collections, and Events.",
-  "url"           : "http://backbonejs.org",
+  "url"           : "http://hmil.github.io/backbone",
   "keywords"      : ["model", "view", "controller", "router", "server", "client", "browser"],
   "author"        : "Jeremy Ashkenas <jeremy@documentcloud.org>",
   "dependencies"  : {
@@ -23,6 +23,6 @@
   "license"       : "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jashkenas/backbone.git"
+    "url": "https://github.com/hmil/backbone.git"
   }
 }
